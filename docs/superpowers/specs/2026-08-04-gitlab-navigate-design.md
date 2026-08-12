@@ -82,12 +82,14 @@ buildUrl(type, input, base) -> string // throws ParseError on invalid input
 - if `raw` parses as an `http(s)` URL, return it unchanged (pasted full links just work)
 - otherwise, by type:
 
-| type      | accepted input                     | result                                    |
-|-----------|------------------------------------|-------------------------------------------|
-| `ticket`  | `2795`, `#2795`                    | `{base}/-/work_items/2795`                 |
-| `mr`      | `1122`, `!1122`                    | `{base}/-/merge_requests/1122`             |
-| `commit`  | 7–40 hex chars                     | `{base}/-/commit/{hash}`                   |
-| `history` | branch name, e.g. `dev/1.0.11`     | `{base}/-/commits/dev%2F1.0.11/`           |
+| type       | accepted input                     | result                                    |
+|------------|------------------------------------|--------------------------------------------|
+| `ticket`   | `2795`, `#2795`                    | `{base}/-/work_items/2795`                 |
+| `mr`       | `1122`, `!1122`                    | `{base}/-/merge_requests/1122`             |
+| `commit`   | 7–40 hex chars                     | `{base}/-/commit/{hash}`                   |
+| `history`  | branch name, e.g. `dev/1.0.11`     | `{base}/-/commits/dev%2F1.0.11/`           |
+| `pipeline` | `2753700544`, `#2753700544`        | `{base}/-/pipelines/2753700544`            |
+| `job`      | `15853756077`, `#15853756077`      | `{base}/-/jobs/15853756077`                |
 
 Per-type normalization before matching:
 - `ticket`: strip a leading `#`
@@ -95,6 +97,11 @@ Per-type normalization before matching:
 - `commit`: lowercase; must match `/^[0-9a-f]{7,40}$/`
 - `history`: strip leading/trailing `/`, strip a leading `refs/heads/` or `origin/`,
   then `encodeURIComponent` the remainder and append a trailing `/`
+- `pipeline`, `job`: strip a leading `#`; digits only
+
+Pipeline and job ids are both bare numbers with no distinguishing shape (unlike a
+hex commit hash or a slash-containing branch name), so there is no way to route a
+single input to the right one — they get their own boxes.
 
 Anything that fails its pattern throws a `ParseError` carrying a short human message.
 

@@ -6,6 +6,8 @@ const LABELS = {
   mr: 'MR',
   commit: 'Commit',
   history: 'History',
+  pipeline: 'Pipeline',
+  job: 'Job',
 };
 
 const settings = document.getElementById('settings');

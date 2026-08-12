@@ -115,6 +115,38 @@ describe('buildUrl history', () => {
   });
 });
 
+describe('buildUrl pipeline', () => {
+  test('builds a pipeline URL from a bare number', () => {
+    expect(buildUrl('pipeline', '2753700544', BASE)).toBe(
+      `${BASE}/-/pipelines/2753700544`,
+    );
+  });
+
+  test('strips a leading #', () => {
+    expect(buildUrl('pipeline', '#2753700544', BASE)).toBe(
+      `${BASE}/-/pipelines/2753700544`,
+    );
+  });
+
+  test('rejects a non-numeric pipeline id', () => {
+    expect(() => buildUrl('pipeline', 'abc', BASE)).toThrow(ParseError);
+  });
+});
+
+describe('buildUrl job', () => {
+  test('builds a job URL from a bare number', () => {
+    expect(buildUrl('job', '15853756077', BASE)).toBe(`${BASE}/-/jobs/15853756077`);
+  });
+
+  test('strips a leading #', () => {
+    expect(buildUrl('job', '#15853756077', BASE)).toBe(`${BASE}/-/jobs/15853756077`);
+  });
+
+  test('rejects a non-numeric job id', () => {
+    expect(() => buildUrl('job', 'abc', BASE)).toThrow(ParseError);
+  });
+});
+
 describe('buildUrl pasted URLs', () => {
   test('returns a pasted work item URL unchanged', () => {
     const url = `${BASE}/-/work_items/2795`;
@@ -135,6 +167,16 @@ describe('buildUrl pasted URLs', () => {
     const url = `${BASE}/-/commits/dev%2F1.0.11/`;
     expect(buildUrl('history', url, BASE)).toBe(url);
   });
+
+  test('returns a pasted pipeline URL unchanged', () => {
+    const url = `${BASE}/-/pipelines/2753700544`;
+    expect(buildUrl('pipeline', url, BASE)).toBe(url);
+  });
+
+  test('returns a pasted job URL unchanged', () => {
+    const url = `${BASE}/-/jobs/15853756077`;
+    expect(buildUrl('job', url, BASE)).toBe(url);
+  });
 });
 
 describe('buildUrl input handling', () => {
@@ -147,7 +189,7 @@ describe('buildUrl input handling', () => {
   });
 
   test('rejects an unknown type', () => {
-    expect(() => buildUrl('pipeline', '42', BASE)).toThrow(ParseError);
+    expect(() => buildUrl('bogus', '42', BASE)).toThrow(ParseError);
   });
 
   test('rejects a missing base URL', () => {

@@ -97,7 +97,7 @@ button:hover {
 
 .field {
   display: grid;
-  grid-template-columns: 62px 1fr;
+  grid-template-columns: 68px 1fr;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;

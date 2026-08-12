@@ -23,6 +23,11 @@ Given the base URL above:
 | MR      | `1122`         | `.../paratoo-fdcp/-/merge_requests/1122`                      |
 | Commit  | `5c3f861…`     | `.../paratoo-fdcp/-/commit/5c3f861…`                          |
 | History | `dev/1.0.11`   | `.../paratoo-fdcp/-/commits/dev%2F1.0.11/`                    |
+| Pipeline| `2753700544`   | `.../paratoo-fdcp/-/pipelines/2753700544`                      |
+| Job     | `15853756077`  | `.../paratoo-fdcp/-/jobs/15853756077`                          |
+
+Pipeline and job ids are both bare numbers with no way to tell them apart from the id
+alone, so they get their own boxes rather than sharing one.
 
 Input is forgiving: `#2795` and `!1122` work, commit hashes may be 7–40 hex characters
 in any case, branch names may carry a leading `origin/` or `refs/heads/`, and pasting a
