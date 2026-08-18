@@ -119,18 +119,27 @@ one-time setup.
 
 Anything that fails its pattern throws a `ParseError` carrying a short human message.
 
+`swapMrBranches(urlString)` is the other pure export. Given a
+`.../-/merge_requests/new?...` URL, it swaps `merge_request[source_branch]` and
+`merge_request[target_branch]` (and `source_project_id`/`target_project_id` if both
+are present, for fork MRs), preserving every other query param and the path.
+Throws `ParseError` if either branch param is missing or the input isn't a URL. It
+operates purely on the URL string — no DOM, no live page — so it can't break when
+GitLab changes their page markup, and it stays testable without a browser.
+
 ### lib/storage.js
 
 ```js
-getBase() / setBase(url)        // chrome.storage.sync, key "baseUrl"
-getHistory() / pushHistory(e)   // chrome.storage.local, key "history"
+getBase() / setBase(url)                       // chrome.storage.sync, key "baseUrl"
+getTargetBranch() / setTargetBranch(branch)     // chrome.storage.sync, key "targetBranch"
+getHistory() / pushHistory(e)                   // chrome.storage.local, key "history"
 ```
 
 `pushHistory` prepends `{type, value, url, ts}`, removes any earlier entry with the
 same `url`, and truncates to 8.
 
-Base URL lives in `sync` so it follows the user across machines; history lives in
-`local` because it is machine-specific noise.
+Base URL and target branch live in `sync` so they follow the user across machines;
+history lives in `local` because it is machine-specific noise.
 
 ### manifest.json
 
@@ -138,8 +147,8 @@ Base URL lives in `sync` so it follows the user across machines; history lives i
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.1.0",
-  "permissions": ["storage"],
+  "version": "0.4.0",
+  "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
   "commands": {
     "_execute_action": {
@@ -150,8 +159,12 @@ Base URL lives in `sync` so it follows the user across machines; history lives i
 }
 ```
 
-No host permissions and no background service worker are needed —
-`chrome.tabs.create` with a URL requires neither.
+No host permissions and no content script or background service worker are needed.
+`chrome.tabs.create` with a URL requires nothing extra; the branch-swap feature reads
+and rewrites the active tab's URL via `chrome.tabs.query`/`chrome.tabs.update`, which
+`activeTab` covers because opening the popup is itself the qualifying user gesture —
+no host permission, no broad "read/change data on all sites" warning, and no content
+script to keep in sync with GitLab's markup.
 
 ## Data Flow
 
@@ -172,6 +185,12 @@ input.
 The stored URL is used directly — no re-parsing, so entries stay valid even if the
 base URL later changes.
 
+**On open, independently of the above:** query the active tab's URL and try
+`swapMrBranches(tab.url)`. If it succeeds, show the "Swap source/target branches"
+button and cache the swapped URL and tab id. This check does not depend on the base
+URL being configured — it only reads the tab that's already open. On click,
+`chrome.tabs.update(tabId, { url: swappedUrl })` and close the popup.
+
 ## Error Handling
 
 - No base URL configured: inputs disabled, settings expanded — the popup is
@@ -179,6 +198,9 @@ base URL later changes.
 - Unparseable input: inline message under the offending row only. Nothing navigates,
   nothing is written to history, the popup stays open.
 - Invalid base URL on save: inline message, nothing stored.
+- Active tab isn't a new-MR page, or is missing a branch param: the swap button simply
+  never appears. No error shown — it's an unobtrusive extra, not a step the user must
+  clear.
 - All errors are inline text. No alerts, no thrown exceptions reaching the top level.
 
 ## Testing
@@ -193,9 +215,13 @@ base URL later changes.
 - `normalizeBase` trailing-slash and trailing-`/-/...` trimming
 - rejects: empty input, non-numeric ticket/MR, too-short and non-hex commit hashes,
   a base URL that is not http(s)
+- `swapMrBranches`: swaps source/target branch params, preserves path and other query
+  params, swaps project ids only when both are present, rejects a URL missing either
+  branch param or that isn't a URL at all
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
-state, each of the four boxes, the shortcut, and the history list.
+state, each box, the shortcut, the history list, and the swap button appearing only
+on a new-MR tab.
 
 ## Decisions
 
@@ -208,3 +234,10 @@ state, each of the four boxes, the shortcut, and the history list.
   reshaping storage, since the base URL is a single well-known key.
 - **History stores the resolved URL,** not the raw reference, so replaying an entry
   never depends on current settings.
+- **Branch swap lives in the popup and edits the tab's URL, not a content script.**
+  A content script matching every host (needed since the repo is self-hostable) would
+  cost a broad "read/change data on all sites" warning for a feature that only ever
+  needs one tab, once, on click. `activeTab` covers reading and rewriting that one
+  tab's URL because opening the popup is itself the qualifying user gesture — same
+  guarantee, far smaller permission footprint. It also means the feature can't be
+  broken by a GitLab front-end change, since it never touches the page's DOM.

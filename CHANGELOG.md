@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Added a "Swap source/target branches" button. When the active tab is a GitLab new-MR
+  page (`.../-/merge_requests/new?...`), the popup shows it; clicking swaps the
+  `source_branch`/`target_branch` (and project ids, if present) in that tab's URL and
+  reloads it — no more re-picking branches by hand when GitLab reports "these branches
+  already have an open merge request".
+- Adds the `activeTab` permission, scoped to the tab the popup is opened against —
+  no content script, no host permissions, no broad "read data on all sites" warning.
+
 ## 0.3.0
 
 - Added a Create MR box. Paste a source branch name and it opens GitLab's new-MR page

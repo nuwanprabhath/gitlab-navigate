@@ -1,4 +1,4 @@
-import { ParseError, buildUrl, normalizeBase } from './lib/parse.js';
+import { ParseError, buildUrl, normalizeBase, swapMrBranches } from './lib/parse.js';
 import {
   getBase,
   getHistory,
@@ -27,11 +27,15 @@ const targetBranchInput = document.getElementById('target-branch-input');
 const targetBranchSave = document.getElementById('target-branch-save');
 const targetBranchError = document.getElementById('target-branch-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
+const swapMr = document.getElementById('swap-mr');
+const swapMrButton = document.getElementById('swap-mr-button');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
 let base = '';
 let targetBranch = '';
+let activeTabId = null;
+let swappedUrl = '';
 
 function showError(element, message) {
   element.textContent = message;
@@ -136,6 +140,25 @@ async function saveBase() {
   refInputs[0].focus();
 }
 
+async function checkSwapMr() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.url) return;
+
+  try {
+    swappedUrl = swapMrBranches(tab.url);
+  } catch {
+    return;
+  }
+  activeTabId = tab.id;
+  swapMr.hidden = false;
+}
+
+function doSwapMr() {
+  if (!activeTabId || !swappedUrl) return;
+  chrome.tabs.update(activeTabId, { url: swappedUrl });
+  window.close();
+}
+
 async function saveTargetBranch() {
   clearError(targetBranchError);
 
@@ -170,6 +193,8 @@ baseInput.addEventListener('keydown', (event) => {
   saveBase();
 });
 
+swapMrButton.addEventListener('click', doSwapMr);
+
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter') return;
@@ -181,6 +206,7 @@ async function init() {
   base = await getBase();
   targetBranch = await getTargetBranch();
   renderHistory(await getHistory());
+  checkSwapMr();
 
   if (base) {
     setInputsEnabled(true);

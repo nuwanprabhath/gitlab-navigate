@@ -40,6 +40,17 @@ full GitLab URL into any box just opens that URL.
 
 The last 8 places you visited are listed under **Recent** and are one click away.
 
+## Swap branches on a "new merge request" page
+
+If GitLab's active tab is already on a `.../-/merge_requests/new?...` page (typically
+because you got there via the Create MR box), the popup shows a **Swap
+source/target branches** button. Click it and that tab reloads with source and
+target swapped — handy when GitLab reports "these branches already have an open
+merge request" and you actually meant it the other way round.
+
+This reads and rewrites the tab's URL only; it doesn't touch the page's DOM, so it
+can't break when GitLab changes their UI.
+
 ## Settings
 
 The gear button holds two fields:

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { ParseError, buildUrl, normalizeBase } from '../lib/parse.js';
+import { ParseError, buildUrl, normalizeBase, swapMrBranches } from '../lib/parse.js';
 
 const BASE = 'https://gitlab.com/ternandsparrow/paratoo-fdcp';
 
@@ -182,6 +182,58 @@ describe('buildUrl createMr', () => {
 
   test('rejects an empty source branch', () => {
     expect(() => buildUrl('createMr', '   ', BASE, target)).toThrow(ParseError);
+  });
+});
+
+describe('swapMrBranches', () => {
+  const newMrUrl =
+    `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=` +
+    `fix-plot-layout-pro-expansion-issue&merge_request%5Btarget_branch%5D=dev%2F1.0.11`;
+
+  test('swaps source and target branch query params', () => {
+    const result = swapMrBranches(newMrUrl);
+    const params = new URL(result).searchParams;
+    expect(params.get('merge_request[source_branch]')).toBe('dev/1.0.11');
+    expect(params.get('merge_request[target_branch]')).toBe(
+      'fix-plot-layout-pro-expansion-issue',
+    );
+  });
+
+  test('preserves the path and other query params', () => {
+    const url = `${newMrUrl}&nav_source=navbar`;
+    const result = swapMrBranches(url);
+    const parsed = new URL(result);
+    expect(parsed.pathname).toBe('/ternandsparrow/paratoo-fdcp/-/merge_requests/new');
+    expect(parsed.searchParams.get('nav_source')).toBe('navbar');
+  });
+
+  test('swaps source and target project ids when both are present', () => {
+    const url =
+      `${newMrUrl}&merge_request%5Bsource_project_id%5D=1` +
+      `&merge_request%5Btarget_project_id%5D=2`;
+    const params = new URL(swapMrBranches(url)).searchParams;
+    expect(params.get('merge_request[source_project_id]')).toBe('2');
+    expect(params.get('merge_request[target_project_id]')).toBe('1');
+  });
+
+  test('leaves project ids alone when only one is present', () => {
+    const url = `${newMrUrl}&merge_request%5Bsource_project_id%5D=1`;
+    const params = new URL(swapMrBranches(url)).searchParams;
+    expect(params.get('merge_request[source_project_id]')).toBe('1');
+  });
+
+  test('rejects a URL with no source branch', () => {
+    const url = `${BASE}/-/merge_requests/new?merge_request%5Btarget_branch%5D=main`;
+    expect(() => swapMrBranches(url)).toThrow(ParseError);
+  });
+
+  test('rejects a URL with no target branch', () => {
+    const url = `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=main`;
+    expect(() => swapMrBranches(url)).toThrow(ParseError);
+  });
+
+  test('rejects something that is not a URL', () => {
+    expect(() => swapMrBranches('not a url')).toThrow(ParseError);
   });
 });
 

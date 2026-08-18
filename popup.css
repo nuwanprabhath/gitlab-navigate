@@ -135,6 +135,25 @@ input[type="text"]:disabled {
   color: var(--error);
 }
 
+.swap-mr {
+  margin-top: 10px;
+}
+
+.swap-mr button {
+  width: 100%;
+  padding: 7px 8px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--chip);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+}
+
+.swap-mr button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 .recent {
   margin-top: 12px;
   padding-top: 10px;
