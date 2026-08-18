@@ -1,5 +1,12 @@
 import { ParseError, buildUrl, normalizeBase } from './lib/parse.js';
-import { getBase, getHistory, pushHistory, setBase } from './lib/storage.js';
+import {
+  getBase,
+  getHistory,
+  getTargetBranch,
+  pushHistory,
+  setBase,
+  setTargetBranch,
+} from './lib/storage.js';
 
 const LABELS = {
   ticket: 'Ticket',
@@ -8,6 +15,7 @@ const LABELS = {
   history: 'History',
   pipeline: 'Pipeline',
   job: 'Job',
+  createMr: 'Create MR',
 };
 
 const settings = document.getElementById('settings');
@@ -15,11 +23,15 @@ const settingsToggle = document.getElementById('settings-toggle');
 const baseInput = document.getElementById('base-input');
 const baseSave = document.getElementById('base-save');
 const baseError = document.getElementById('base-error');
+const targetBranchInput = document.getElementById('target-branch-input');
+const targetBranchSave = document.getElementById('target-branch-save');
+const targetBranchError = document.getElementById('target-branch-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
 let base = '';
+let targetBranch = '';
 
 function showError(element, message) {
   element.textContent = message;
@@ -42,6 +54,7 @@ function setInputsEnabled(enabled) {
 function openSettings() {
   settings.hidden = false;
   baseInput.value = base;
+  targetBranchInput.value = targetBranch;
   baseInput.focus();
   baseInput.select();
 }
@@ -49,6 +62,7 @@ function openSettings() {
 function closeSettings() {
   settings.hidden = true;
   clearError(baseError);
+  clearError(targetBranchError);
 }
 
 function navigate(url) {
@@ -87,7 +101,7 @@ async function submitReference(input) {
 
   let url;
   try {
-    url = buildUrl(input.dataset.type, input.value, base);
+    url = buildUrl(input.dataset.type, input.value, base, targetBranch);
   } catch (err) {
     if (err instanceof ParseError) {
       showError(error, err.message);
@@ -122,6 +136,19 @@ async function saveBase() {
   refInputs[0].focus();
 }
 
+async function saveTargetBranch() {
+  clearError(targetBranchError);
+
+  const trimmed = targetBranchInput.value.trim();
+  if (!trimmed) {
+    showError(targetBranchError, 'Enter a target branch name');
+    return;
+  }
+
+  targetBranch = trimmed;
+  await setTargetBranch(targetBranch);
+}
+
 for (const input of refInputs) {
   input.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
@@ -143,8 +170,16 @@ baseInput.addEventListener('keydown', (event) => {
   saveBase();
 });
 
+targetBranchSave.addEventListener('click', saveTargetBranch);
+targetBranchInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  saveTargetBranch();
+});
+
 async function init() {
   base = await getBase();
+  targetBranch = await getTargetBranch();
   renderHistory(await getHistory());
 
   if (base) {

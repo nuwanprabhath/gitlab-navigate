@@ -147,6 +147,44 @@ describe('buildUrl job', () => {
   });
 });
 
+describe('buildUrl createMr', () => {
+  const target = 'dev/1.0.11';
+
+  test('builds a new MR URL from a source branch and the configured target', () => {
+    expect(
+      buildUrl('createMr', 'fix-plot-layout-pro-expansion-issue', BASE, target),
+    ).toBe(
+      `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=fix-plot-layout-pro-expansion-issue&merge_request%5Btarget_branch%5D=dev%2F1.0.11`,
+    );
+  });
+
+  test('encodes a source branch that contains slashes', () => {
+    expect(buildUrl('createMr', 'feature/foo', BASE, target)).toBe(
+      `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=feature%2Ffoo&merge_request%5Btarget_branch%5D=dev%2F1.0.11`,
+    );
+  });
+
+  test('strips a leading origin/ from the source branch', () => {
+    expect(buildUrl('createMr', 'origin/my-branch', BASE, target)).toBe(
+      `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=my-branch&merge_request%5Btarget_branch%5D=dev%2F1.0.11`,
+    );
+  });
+
+  test('strips a leading refs/heads/ from the source branch', () => {
+    expect(buildUrl('createMr', 'refs/heads/my-branch', BASE, target)).toBe(
+      `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=my-branch&merge_request%5Btarget_branch%5D=dev%2F1.0.11`,
+    );
+  });
+
+  test('rejects when no target branch is configured', () => {
+    expect(() => buildUrl('createMr', 'my-branch', BASE, '')).toThrow(ParseError);
+  });
+
+  test('rejects an empty source branch', () => {
+    expect(() => buildUrl('createMr', '   ', BASE, target)).toThrow(ParseError);
+  });
+});
+
 describe('buildUrl pasted URLs', () => {
   test('returns a pasted work item URL unchanged', () => {
     const url = `${BASE}/-/work_items/2795`;
@@ -176,6 +214,11 @@ describe('buildUrl pasted URLs', () => {
   test('returns a pasted job URL unchanged', () => {
     const url = `${BASE}/-/jobs/15853756077`;
     expect(buildUrl('job', url, BASE)).toBe(url);
+  });
+
+  test('returns a pasted new-MR URL unchanged', () => {
+    const url = `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=my-branch`;
+    expect(buildUrl('createMr', url, BASE, 'dev/1.0.11')).toBe(url);
   });
 });
 

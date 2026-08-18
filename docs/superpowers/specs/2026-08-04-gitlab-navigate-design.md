@@ -66,9 +66,11 @@ Styling is plain CSS, light/dark aware via `prefers-color-scheme`.
 Pure, exported functions. No I/O.
 
 ```js
-normalizeBase(input) -> string       // throws on invalid
-buildUrl(type, input, base) -> string // throws ParseError on invalid input
+normalizeBase(input) -> string               // throws on invalid
+buildUrl(type, input, base, extra) -> string  // throws ParseError on invalid input
 ```
+
+`extra` is type-specific and only `createMr` uses it, as the target branch.
 
 `normalizeBase`:
 - trim whitespace
@@ -90,6 +92,7 @@ buildUrl(type, input, base) -> string // throws ParseError on invalid input
 | `history`  | branch name, e.g. `dev/1.0.11`     | `{base}/-/commits/dev%2F1.0.11/`           |
 | `pipeline` | `2753700544`, `#2753700544`        | `{base}/-/pipelines/2753700544`            |
 | `job`      | `15853756077`, `#15853756077`      | `{base}/-/jobs/15853756077`                |
+| `createMr` | source branch, e.g. `fix-plot-layout-pro-expansion-issue` | `{base}/-/merge_requests/new?merge_request[source_branch]=...&merge_request[target_branch]={configured target}` |
 
 Per-type normalization before matching:
 - `ticket`: strip a leading `#`
@@ -98,10 +101,21 @@ Per-type normalization before matching:
 - `history`: strip leading/trailing `/`, strip a leading `refs/heads/` or `origin/`,
   then `encodeURIComponent` the remainder and append a trailing `/`
 - `pipeline`, `job`: strip a leading `#`; digits only
+- `createMr`: same branch-prefix stripping as `history` (shared helper
+  `stripBranchPrefixes`), applied to the source branch only; throws if no target
+  branch is configured
 
 Pipeline and job ids are both bare numbers with no distinguishing shape (unlike a
 hex commit hash or a slash-containing branch name), so there is no way to route a
 single input to the right one — they get their own boxes.
+
+`createMr` does not build a page that already exists (like every other type) — it
+builds GitLab's *new*-MR form pre-filled via query string, using GitLab's own
+`merge_request[source_branch]` / `merge_request[target_branch]` parameter names, so
+GitLab is not left to default the target to `main`. The target branch is a second
+setting (`targetBranch`, `chrome.storage.sync`) rather than a fifth text box, since it
+changes far less often than the source branch and belongs with the repo URL as
+one-time setup.
 
 Anything that fails its pattern throws a `ParseError` carrying a short human message.
 

@@ -25,6 +25,18 @@
         <button id="base-save" type="button">Save</button>
       </div>
       <p class="error" id="base-error" hidden></p>
+
+      <label for="target-branch-input">Default MR target branch</label>
+      <div class="settings-row">
+        <input
+          id="target-branch-input"
+          type="text"
+          spellcheck="false"
+          placeholder="dev/1.0.11"
+        />
+        <button id="target-branch-save" type="button">Save</button>
+      </div>
+      <p class="error" id="target-branch-error" hidden></p>
     </section>
 
     <form id="refs" autocomplete="off">
@@ -74,6 +86,18 @@
         <label for="job">Job</label>
         <input id="job" data-type="job" type="text" spellcheck="false" placeholder="15853756077" />
         <p class="error" data-error-for="job" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="create-mr">Create MR</label>
+        <input
+          id="create-mr"
+          data-type="createMr"
+          type="text"
+          spellcheck="false"
+          placeholder="fix-plot-layout-pro-expansion-issue"
+        />
+        <p class="error" data-error-for="create-mr" hidden></p>
       </div>
     </form>
 

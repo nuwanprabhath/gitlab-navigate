@@ -25,9 +25,14 @@ Given the base URL above:
 | History | `dev/1.0.11`   | `.../paratoo-fdcp/-/commits/dev%2F1.0.11/`                    |
 | Pipeline| `2753700544`   | `.../paratoo-fdcp/-/pipelines/2753700544`                      |
 | Job     | `15853756077`  | `.../paratoo-fdcp/-/jobs/15853756077`                          |
+| Create MR | `fix-plot-layout-pro-expansion-issue` | new MR page, source `fix-plot-layout-pro-expansion-issue`, target set to your configured default branch |
 
 Pipeline and job ids are both bare numbers with no way to tell them apart from the id
 alone, so they get their own boxes rather than sharing one.
+
+**Create MR** paste a source branch, press Enter, and GitLab's new-merge-request page
+opens with that source branch and your configured default target branch already
+selected — no more re-picking the target away from `main` every time.
 
 Input is forgiving: `#2795` and `!1122` work, commit hashes may be 7–40 hex characters
 in any case, branch names may carry a leading `origin/` or `refs/heads/`, and pasting a
@@ -37,12 +42,15 @@ The last 8 places you visited are listed under **Recent** and are one click away
 
 ## Settings
 
-The gear button holds the repo URL. Paste any page from the repo — everything from
-`/-/` onward is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
-`…/paratoo-fdcp`. Self-hosted GitLab instances work; the URL just has to be http(s).
+The gear button holds two fields:
 
-The repo URL is kept in `chrome.storage.sync`, so it follows your Chrome profile.
-Recent history is kept in `chrome.storage.local`.
+- **GitLab repo URL** — paste any page from the repo and everything from `/-/` onward
+  is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
+  `…/paratoo-fdcp`. Self-hosted GitLab instances work; the URL just has to be http(s).
+- **Default MR target branch** — used by the Create MR box, e.g. `dev/1.0.11`.
+
+Both are kept in `chrome.storage.sync`, so they follow your Chrome profile. Recent
+history is kept in `chrome.storage.local`.
 
 ## Development
 

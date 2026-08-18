@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Jump straight to a GitLab ticket, merge request, commit, or branch history from a number, hash, or branch name.",
   "permissions": ["storage"],
   "action": {
