@@ -8,9 +8,15 @@
   <body>
     <header>
       <h1>GitLab Navigate</h1>
-      <button id="settings-toggle" type="button" title="Repo settings" aria-label="Repo settings">
-        &#9881;
-      </button>
+      <div class="header-actions">
+        <button id="mr-create" type="button" title="New merge request">MR-c</button>
+        <button id="mr-assigned" type="button" title="MRs assigned to me for review">
+          MR-a
+        </button>
+        <button id="settings-toggle" type="button" title="Repo settings" aria-label="Repo settings">
+          &#9881;
+        </button>
+      </div>
     </header>
 
     <section id="settings" class="settings" hidden>
@@ -37,6 +43,18 @@
         <button id="target-branch-save" type="button">Save</button>
       </div>
       <p class="error" id="target-branch-error" hidden></p>
+
+      <label for="username-input">Your GitLab username</label>
+      <div class="settings-row">
+        <input
+          id="username-input"
+          type="text"
+          spellcheck="false"
+          placeholder="nuwan-tern"
+        />
+        <button id="username-save" type="button">Save</button>
+      </div>
+      <p class="error" id="username-error" hidden></p>
     </section>
 
     <form id="refs" autocomplete="off">

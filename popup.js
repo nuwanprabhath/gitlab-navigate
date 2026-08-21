@@ -1,11 +1,20 @@
-import { ParseError, buildUrl, normalizeBase, swapMrBranches } from './lib/parse.js';
+import {
+  ParseError,
+  assignedMrUrl,
+  buildUrl,
+  newMrUrl,
+  normalizeBase,
+  swapMrBranches,
+} from './lib/parse.js';
 import {
   getBase,
   getHistory,
   getTargetBranch,
+  getUsername,
   pushHistory,
   setBase,
   setTargetBranch,
+  setUsername,
 } from './lib/storage.js';
 
 const LABELS = {
@@ -26,14 +35,20 @@ const baseError = document.getElementById('base-error');
 const targetBranchInput = document.getElementById('target-branch-input');
 const targetBranchSave = document.getElementById('target-branch-save');
 const targetBranchError = document.getElementById('target-branch-error');
+const usernameInput = document.getElementById('username-input');
+const usernameSave = document.getElementById('username-save');
+const usernameError = document.getElementById('username-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
 const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
+const mrCreate = document.getElementById('mr-create');
+const mrAssigned = document.getElementById('mr-assigned');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
 let base = '';
 let targetBranch = '';
+let username = '';
 let activeTabId = null;
 let swappedUrl = '';
 
@@ -59,6 +74,7 @@ function openSettings() {
   settings.hidden = false;
   baseInput.value = base;
   targetBranchInput.value = targetBranch;
+  usernameInput.value = username;
   baseInput.focus();
   baseInput.select();
 }
@@ -67,6 +83,7 @@ function closeSettings() {
   settings.hidden = true;
   clearError(baseError);
   clearError(targetBranchError);
+  clearError(usernameError);
 }
 
 function navigate(url) {
@@ -172,6 +189,42 @@ async function saveTargetBranch() {
   await setTargetBranch(targetBranch);
 }
 
+async function saveUsername() {
+  clearError(usernameError);
+
+  const trimmed = usernameInput.value.trim();
+  if (!trimmed) {
+    showError(usernameError, 'Enter your GitLab username');
+    return;
+  }
+
+  username = trimmed;
+  await setUsername(username);
+}
+
+function goToNewMr() {
+  if (!base) {
+    openSettings();
+    showError(baseError, 'Set your GitLab repo URL first');
+    return;
+  }
+  navigate(newMrUrl(base));
+}
+
+function goToAssignedMr() {
+  if (!base) {
+    openSettings();
+    showError(baseError, 'Set your GitLab repo URL first');
+    return;
+  }
+  if (!username) {
+    openSettings();
+    showError(usernameError, 'Set your GitLab username first');
+    return;
+  }
+  navigate(assignedMrUrl(base, username));
+}
+
 for (const input of refInputs) {
   input.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
@@ -195,6 +248,9 @@ baseInput.addEventListener('keydown', (event) => {
 
 swapMrButton.addEventListener('click', doSwapMr);
 
+mrCreate.addEventListener('click', goToNewMr);
+mrAssigned.addEventListener('click', goToAssignedMr);
+
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter') return;
@@ -202,9 +258,17 @@ targetBranchInput.addEventListener('keydown', (event) => {
   saveTargetBranch();
 });
 
+usernameSave.addEventListener('click', saveUsername);
+usernameInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  saveUsername();
+});
+
 async function init() {
   base = await getBase();
   targetBranch = await getTargetBranch();
+  username = await getUsername();
   renderHistory(await getHistory());
   checkSwapMr();
 

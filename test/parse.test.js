@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { ParseError, buildUrl, normalizeBase, swapMrBranches } from '../lib/parse.js';
+import {
+  ParseError,
+  assignedMrUrl,
+  buildUrl,
+  newMrUrl,
+  normalizeBase,
+  swapMrBranches,
+} from '../lib/parse.js';
 
 const BASE = 'https://gitlab.com/ternandsparrow/paratoo-fdcp';
 
@@ -299,5 +306,37 @@ describe('buildUrl input handling', () => {
       expect(err).toBeInstanceOf(ParseError);
       expect(err.message.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('newMrUrl', () => {
+  test('builds the blank new-MR page', () => {
+    expect(newMrUrl(BASE)).toBe(`${BASE}/-/merge_requests/new`);
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => newMrUrl('')).toThrow(ParseError);
+  });
+});
+
+describe('assignedMrUrl', () => {
+  test('builds the opened-MRs-assigned-to-me URL', () => {
+    expect(assignedMrUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&reviewer_username=nuwan-tern&first_page_size=100`,
+    );
+  });
+
+  test('encodes a username with special characters', () => {
+    expect(assignedMrUrl(BASE, 'a b')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&reviewer_username=a+b&first_page_size=100`,
+    );
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => assignedMrUrl('', 'nuwan-tern')).toThrow(ParseError);
+  });
+
+  test('rejects a missing username', () => {
+    expect(() => assignedMrUrl(BASE, '')).toThrow(ParseError);
   });
 });

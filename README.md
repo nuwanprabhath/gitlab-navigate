@@ -40,6 +40,18 @@ full GitLab URL into any box just opens that URL.
 
 The last 8 places you visited are listed under **Recent** and are one click away.
 
+## Header buttons
+
+Next to the "GitLab Navigate" title:
+
+- **MR-c** — opens a blank new-MR page, letting you (or GitLab) pick both branches
+  from scratch. Unlike the Create MR box, it doesn't prefill anything.
+- **MR-a** — opens MRs where you're requested as a reviewer: open, newest first, 100
+  per page. Needs your GitLab username, set once in settings.
+
+Clicking either before the repo URL (or, for MR-a, your username) is configured opens
+settings with an inline error instead of failing quietly.
+
 ## Swap branches on a "new merge request" page
 
 If GitLab's active tab is already on a `.../-/merge_requests/new?...` page (typically
@@ -53,15 +65,17 @@ can't break when GitLab changes their UI.
 
 ## Settings
 
-The gear button holds two fields:
+The gear button holds three fields:
 
 - **GitLab repo URL** — paste any page from the repo and everything from `/-/` onward
   is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
   `…/paratoo-fdcp`. Self-hosted GitLab instances work; the URL just has to be http(s).
 - **Default MR target branch** — used by the Create MR box, e.g. `dev/1.0.11`.
+- **Your GitLab username** — used by MR-a to filter MRs down to the ones assigned to
+  you for review, e.g. `nuwan-tern`.
 
-Both are kept in `chrome.storage.sync`, so they follow your Chrome profile. Recent
-history is kept in `chrome.storage.local`.
+All three are kept in `chrome.storage.sync`, so they follow your Chrome profile.
+Recent history is kept in `chrome.storage.local`.
 
 ## Development
 

@@ -50,14 +50,18 @@ popups support.
 
 Fixed-width popup (~320px). Top to bottom:
 
-1. Header row: title, gear button (toggles the settings row).
-2. Settings row (hidden by default): text input for the base repo URL, Save button.
-3. Four labelled input rows, in order: **Ticket**, **MR**, **Commit**, **History**.
-   Each row has a label, a text input, and a hidden error `<span>` beneath it.
-4. "Recent" section: up to 8 entries, each a button showing a type badge and the
+1. Header row: title, then **MR-c** and **MR-a** buttons, then the gear button
+   (toggles the settings row).
+2. Settings row (hidden by default): base repo URL, default MR target branch, and
+   your GitLab username, each its own labelled input + Save button + error line.
+3. Labelled input rows, one per `buildUrl` type (see below). Each row has a label, a
+   text input, and a hidden error `<span>` beneath it.
+4. "Swap source/target branches" button (hidden unless the active tab qualifies, see
+   Data Flow).
+5. "Recent" section: up to 8 entries, each a button showing a type badge and the
    value. Hidden when history is empty.
 
-The Ticket input is focused on open.
+The Ticket input is focused on open, once the repo URL is configured.
 
 Styling is plain CSS, light/dark aware via `prefers-color-scheme`.
 
@@ -68,9 +72,19 @@ Pure, exported functions. No I/O.
 ```js
 normalizeBase(input) -> string               // throws on invalid
 buildUrl(type, input, base, extra) -> string  // throws ParseError on invalid input
+newMrUrl(base) -> string                     // the blank new-MR page
+assignedMrUrl(base, username) -> string      // open MRs where username is reviewer
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
+
+`newMrUrl` and `assignedMrUrl` back the header buttons (**MR-c**, **MR-a**). Unlike
+the text-box types, they take no user-typed reference — just settings — so they sit
+outside the `type`/`buildUrl` dispatch table rather than inside it.
+`assignedMrUrl` builds `.../-/merge_requests/?sort=created_date&state=opened&
+reviewer_username={username}&first_page_size=100`: `reviewer_username` (not
+`assignee_username`) because "assigned to me" here means "I'm requested as
+reviewer," matching how this team actually works MRs.
 
 `normalizeBase`:
 - trim whitespace
@@ -132,14 +146,15 @@ GitLab changes their page markup, and it stays testable without a browser.
 ```js
 getBase() / setBase(url)                       // chrome.storage.sync, key "baseUrl"
 getTargetBranch() / setTargetBranch(branch)     // chrome.storage.sync, key "targetBranch"
+getUsername() / setUsername(username)          // chrome.storage.sync, key "username"
 getHistory() / pushHistory(e)                   // chrome.storage.local, key "history"
 ```
 
 `pushHistory` prepends `{type, value, url, ts}`, removes any earlier entry with the
 same `url`, and truncates to 8.
 
-Base URL and target branch live in `sync` so they follow the user across machines;
-history lives in `local` because it is machine-specific noise.
+Base URL, target branch, and username all live in `sync` so they follow the user
+across machines; history lives in `local` because it is machine-specific noise.
 
 ### manifest.json
 
@@ -147,7 +162,7 @@ history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
   "commands": {
@@ -168,9 +183,10 @@ script to keep in sync with GitLab's markup.
 
 ## Data Flow
 
-**On open:** `popup.js` reads the base URL and history. If no base URL is stored, the
-settings row is expanded, the four inputs are disabled, and the base input is focused.
-Otherwise the inputs are enabled, history renders, and the Ticket input is focused.
+**On open:** `popup.js` reads the base URL, target branch, username, and history. If
+no base URL is stored, the settings row is expanded, the reference inputs are
+disabled, and the base input is focused. Otherwise the inputs are enabled, history
+renders, and the Ticket input is focused.
 
 **On Enter in an input:** call `buildUrl(type, value, base)`. On success, call
 `chrome.tabs.create({ url })`, `pushHistory(...)`, clear the input, and
@@ -190,6 +206,15 @@ base URL later changes.
 button and cache the swapped URL and tab id. This check does not depend on the base
 URL being configured — it only reads the tab that's already open. On click,
 `chrome.tabs.update(tabId, { url: swappedUrl })` and close the popup.
+
+**On clicking MR-c:** if `base` is unset, open settings and show the base error;
+otherwise `navigate(newMrUrl(base))`.
+
+**On clicking MR-a:** check `base` then `username`, in that order; if either is
+unset, open settings and show that field's error. Otherwise
+`navigate(assignedMrUrl(base, username))`. The checks happen before calling
+`assignedMrUrl` rather than catching its `ParseError`, so the code doesn't have to
+infer which field was missing from the exception message.
 
 ## Error Handling
 
@@ -218,10 +243,14 @@ URL being configured — it only reads the tab that's already open. On click,
 - `swapMrBranches`: swaps source/target branch params, preserves path and other query
   params, swaps project ids only when both are present, rejects a URL missing either
   branch param or that isn't a URL at all
+- `newMrUrl`: builds the blank new-MR page, rejects a missing base URL
+- `assignedMrUrl`: builds the reviewer-filtered MR list, encodes a username with
+  special characters, rejects a missing base URL or username
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
-state, each box, the shortcut, the history list, and the swap button appearing only
-on a new-MR tab.
+state, each box, the shortcut, the history list, the swap button appearing only on a
+new-MR tab, and MR-c/MR-a routing to settings with the right inline error when
+unconfigured.
 
 ## Decisions
 
@@ -241,3 +270,9 @@ on a new-MR tab.
   tab's URL because opening the popup is itself the qualifying user gesture — same
   guarantee, far smaller permission footprint. It also means the feature can't be
   broken by a GitLab front-end change, since it never touches the page's DOM.
+- **MR-a filters on `reviewer_username`, not `assignee_username`.** "Assigned to me"
+  in this team's workflow means "I've been requested to review it," not GitLab's
+  separate assignee field — matching the URL the user actually uses today.
+- **Username is a third setting, not inferred.** GitLab has no reliable
+  unauthenticated way for a content-free extension to know "who am I" — the only
+  honest option is to ask once and store it.

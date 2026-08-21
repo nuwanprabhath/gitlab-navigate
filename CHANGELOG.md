@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+- Added two header buttons next to the "GitLab Navigate" title:
+  - **MR-c** opens a blank new-MR page (`.../-/merge_requests/new`), letting GitLab
+    pick the branches.
+  - **MR-a** opens open MRs where you're requested as reviewer, sorted newest first,
+    100 per page.
+- Settings gained a third field: **Your GitLab username**, used by MR-a. Clicking
+  either header button before the repo URL (and, for MR-a, the username) is set
+  opens settings with an inline error instead of failing silently.
+
 ## 0.4.0
 
 - Added a "Swap source/target branches" button. When the active tab is a GitLab new-MR
