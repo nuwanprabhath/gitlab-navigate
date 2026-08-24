@@ -46,10 +46,14 @@ Next to the "GitLab Navigate" title:
 
 - **MR-c** — opens a blank new-MR page, letting you (or GitLab) pick both branches
   from scratch. Unlike the Create MR box, it doesn't prefill anything.
-- **MR-a** — opens MRs where you're requested as a reviewer: open, newest first, 100
-  per page. Needs your GitLab username, set once in settings.
+- **MR-a** — opens MRs where you're requested as a **reviewer**: open, newest first,
+  100 per page.
+- **MR-as** — opens MRs where you're the **assignee**: same filters, different
+  GitLab field. GitLab treats "reviewer" and "assignee" as separate roles on an MR,
+  so this is deliberately a second button rather than one that mixes both.
 
-Clicking either before the repo URL (or, for MR-a, your username) is configured opens
+Both MR-a and MR-as need your GitLab username, set once in settings. Clicking any of
+the three before the repo URL (or username, for MR-a/MR-as) is configured opens
 settings with an inline error instead of failing quietly.
 
 ## Swap branches on a "new merge request" page

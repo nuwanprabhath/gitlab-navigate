@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   ParseError,
+  assigneeMrUrl,
   assignedMrUrl,
   buildUrl,
   newMrUrl,
@@ -338,5 +339,27 @@ describe('assignedMrUrl', () => {
 
   test('rejects a missing username', () => {
     expect(() => assignedMrUrl(BASE, '')).toThrow(ParseError);
+  });
+});
+
+describe('assigneeMrUrl', () => {
+  test('builds the opened-MRs-where-I-am-assignee URL', () => {
+    expect(assigneeMrUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&assignee_username=nuwan-tern&first_page_size=100`,
+    );
+  });
+
+  test('encodes a username with special characters', () => {
+    expect(assigneeMrUrl(BASE, 'a b')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&assignee_username=a+b&first_page_size=100`,
+    );
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => assigneeMrUrl('', 'nuwan-tern')).toThrow(ParseError);
+  });
+
+  test('rejects a missing username', () => {
+    expect(() => assigneeMrUrl(BASE, '')).toThrow(ParseError);
   });
 });

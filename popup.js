@@ -1,5 +1,6 @@
 import {
   ParseError,
+  assigneeMrUrl,
   assignedMrUrl,
   buildUrl,
   newMrUrl,
@@ -43,6 +44,7 @@ const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
 const mrCreate = document.getElementById('mr-create');
 const mrAssigned = document.getElementById('mr-assigned');
+const mrAssignee = document.getElementById('mr-assignee');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -211,7 +213,7 @@ function goToNewMr() {
   navigate(newMrUrl(base));
 }
 
-function goToAssignedMr() {
+function goToMrList(buildMrListUrl) {
   if (!base) {
     openSettings();
     showError(baseError, 'Set your GitLab repo URL first');
@@ -222,7 +224,7 @@ function goToAssignedMr() {
     showError(usernameError, 'Set your GitLab username first');
     return;
   }
-  navigate(assignedMrUrl(base, username));
+  navigate(buildMrListUrl(base, username));
 }
 
 for (const input of refInputs) {
@@ -249,7 +251,8 @@ baseInput.addEventListener('keydown', (event) => {
 swapMrButton.addEventListener('click', doSwapMr);
 
 mrCreate.addEventListener('click', goToNewMr);
-mrAssigned.addEventListener('click', goToAssignedMr);
+mrAssigned.addEventListener('click', () => goToMrList(assignedMrUrl));
+mrAssignee.addEventListener('click', () => goToMrList(assigneeMrUrl));
 
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {

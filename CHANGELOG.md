@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Added a third header button, **MR-as**, for MRs where you're the assignee
+  (`assignee_username`) — distinct from **MR-a**, which filters by reviewer
+  (`reviewer_username`). Same opened/newest-first/100-per-page filters, same
+  username setting.
+
 ## 0.5.0
 
 - Added two header buttons next to the "GitLab Navigate" title:

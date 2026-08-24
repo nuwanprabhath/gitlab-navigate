@@ -50,8 +50,8 @@ popups support.
 
 Fixed-width popup (~320px). Top to bottom:
 
-1. Header row: title, then **MR-c** and **MR-a** buttons, then the gear button
-   (toggles the settings row).
+1. Header row: title, then **MR-c**, **MR-a**, and **MR-as** buttons, then the gear
+   button (toggles the settings row).
 2. Settings row (hidden by default): base repo URL, default MR target branch, and
    your GitLab username, each its own labelled input + Save button + error line.
 3. Labelled input rows, one per `buildUrl` type (see below). Each row has a label, a
@@ -74,17 +74,24 @@ normalizeBase(input) -> string               // throws on invalid
 buildUrl(type, input, base, extra) -> string  // throws ParseError on invalid input
 newMrUrl(base) -> string                     // the blank new-MR page
 assignedMrUrl(base, username) -> string      // open MRs where username is reviewer
+assigneeMrUrl(base, username) -> string      // open MRs where username is assignee
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
 
-`newMrUrl` and `assignedMrUrl` back the header buttons (**MR-c**, **MR-a**). Unlike
-the text-box types, they take no user-typed reference — just settings — so they sit
-outside the `type`/`buildUrl` dispatch table rather than inside it.
-`assignedMrUrl` builds `.../-/merge_requests/?sort=created_date&state=opened&
-reviewer_username={username}&first_page_size=100`: `reviewer_username` (not
-`assignee_username`) because "assigned to me" here means "I'm requested as
-reviewer," matching how this team actually works MRs.
+`newMrUrl`, `assignedMrUrl`, and `assigneeMrUrl` back the header buttons (**MR-c**,
+**MR-a**, **MR-as**). Unlike the text-box types, they take no user-typed reference —
+just settings — so they sit outside the `type`/`buildUrl` dispatch table rather than
+inside it.
+
+`assignedMrUrl` and `assigneeMrUrl` both build
+`.../-/merge_requests/?sort=created_date&state=opened&{param}={username}&
+first_page_size=100`, differing only in `{param}`: `reviewer_username` for
+`assignedMrUrl`, `assignee_username` for `assigneeMrUrl`. GitLab treats reviewer and
+assignee as separate roles on an MR, and a user can be one, the other, both, or
+neither — so these are deliberately two buttons rather than one that guesses which
+the user meant. Both share a private `mrListUrl(base, username, param)` helper to
+avoid duplicating the shared query params.
 
 `normalizeBase`:
 - trim whitespace
@@ -162,7 +169,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
   "commands": {
@@ -210,11 +217,13 @@ URL being configured — it only reads the tab that's already open. On click,
 **On clicking MR-c:** if `base` is unset, open settings and show the base error;
 otherwise `navigate(newMrUrl(base))`.
 
-**On clicking MR-a:** check `base` then `username`, in that order; if either is
-unset, open settings and show that field's error. Otherwise
-`navigate(assignedMrUrl(base, username))`. The checks happen before calling
-`assignedMrUrl` rather than catching its `ParseError`, so the code doesn't have to
-infer which field was missing from the exception message.
+**On clicking MR-a or MR-as:** both go through a shared `goToMrList(buildMrListUrl)`
+in `popup.js`: check `base` then `username`, in that order; if either is unset, open
+settings and show that field's error. Otherwise
+`navigate(buildMrListUrl(base, username))`, passing `assignedMrUrl` or
+`assigneeMrUrl` respectively. The checks happen before calling the builder rather
+than catching its `ParseError`, so the code doesn't have to infer which field was
+missing from the exception message.
 
 ## Error Handling
 
@@ -244,12 +253,13 @@ infer which field was missing from the exception message.
   params, swaps project ids only when both are present, rejects a URL missing either
   branch param or that isn't a URL at all
 - `newMrUrl`: builds the blank new-MR page, rejects a missing base URL
-- `assignedMrUrl`: builds the reviewer-filtered MR list, encodes a username with
-  special characters, rejects a missing base URL or username
+- `assignedMrUrl` / `assigneeMrUrl`: build the reviewer- and assignee-filtered MR
+  lists respectively, encode a username with special characters, reject a missing
+  base URL or username
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a
-new-MR tab, and MR-c/MR-a routing to settings with the right inline error when
+new-MR tab, and MR-c/MR-a/MR-as routing to settings with the right inline error when
 unconfigured.
 
 ## Decisions
@@ -270,9 +280,13 @@ unconfigured.
   tab's URL because opening the popup is itself the qualifying user gesture — same
   guarantee, far smaller permission footprint. It also means the feature can't be
   broken by a GitLab front-end change, since it never touches the page's DOM.
-- **MR-a filters on `reviewer_username`, not `assignee_username`.** "Assigned to me"
-  in this team's workflow means "I've been requested to review it," not GitLab's
-  separate assignee field — matching the URL the user actually uses today.
+- **MR-a and MR-as are two buttons, not one with a mode toggle.** GitLab tracks
+  reviewer and assignee as independent roles on an MR — a user can be one, the
+  other, both, or neither. Originally only MR-a (reviewer) existed, built to match
+  the URL the user gave; "assigned to me" turned out to mean the literal assignee
+  role too, so MR-as (assignee) was added as its own button rather than folding a
+  second meaning into MR-a, keeping each button's result unambiguous from its label.
 - **Username is a third setting, not inferred.** GitLab has no reliable
   unauthenticated way for a content-free extension to know "who am I" — the only
-  honest option is to ask once and store it.
+  honest option is to ask once and store it. Both MR-a and MR-as share it, since
+  they're the same GitLab account.
