@@ -13,6 +13,7 @@ import {
   getTargetBranch,
   getUsername,
   pushHistory,
+  removeHistory,
   setBase,
   setTargetBranch,
   setUsername,
@@ -108,12 +109,24 @@ function renderHistory(entries) {
 
     const button = document.createElement('button');
     button.type = 'button';
+    button.className = 'recent-nav';
     button.title = entry.url;
     button.append(badge, value);
     button.addEventListener('click', () => navigate(entry.url));
 
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'recent-delete';
+    deleteButton.title = 'Remove from recent';
+    deleteButton.setAttribute('aria-label', 'Remove from recent');
+    deleteButton.textContent = '\u{1F5D1}';
+    deleteButton.addEventListener('click', async () => {
+      renderHistory(await removeHistory(entry.url));
+    });
+
     const item = document.createElement('li');
-    item.append(button);
+    item.className = 'recent-item';
+    item.append(button, deleteButton);
     recentList.append(item);
   }
 }

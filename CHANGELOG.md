@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+
+- Recent entries now show a 🗑 delete button on hover (or keyboard focus), so a
+  single stale/wrong item can be removed without clearing the whole list.
+
 ## 0.6.0
 
 - Added a third header button, **MR-as**, for MRs where you're the assignee

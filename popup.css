@@ -183,11 +183,18 @@ input[type="text"]:disabled {
   margin-top: 4px;
 }
 
-.recent button {
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.recent-nav {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  min-width: 0;
+  flex: 1;
   padding: 5px 8px;
   background: none;
   border: none;
@@ -195,7 +202,29 @@ input[type="text"]:disabled {
   text-align: left;
 }
 
-.recent button:hover {
+.recent-nav:hover {
+  background: var(--chip);
+}
+
+.recent-delete {
+  flex: none;
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  opacity: 0;
+}
+
+.recent-item:hover .recent-delete,
+.recent-item:focus-within .recent-delete {
+  opacity: 1;
+}
+
+.recent-delete:hover {
+  color: var(--error);
   background: var(--chip);
 }
 

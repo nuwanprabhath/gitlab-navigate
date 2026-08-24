@@ -39,6 +39,7 @@ in any case, branch names may carry a leading `origin/` or `refs/heads/`, and pa
 full GitLab URL into any box just opens that URL.
 
 The last 8 places you visited are listed under **Recent** and are one click away.
+Hover (or tab to) an entry to reveal a 🗑 button that removes just that one.
 
 ## Header buttons
 

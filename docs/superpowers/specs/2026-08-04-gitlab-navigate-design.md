@@ -58,8 +58,9 @@ Fixed-width popup (~320px). Top to bottom:
    text input, and a hidden error `<span>` beneath it.
 4. "Swap source/target branches" button (hidden unless the active tab qualifies, see
    Data Flow).
-5. "Recent" section: up to 8 entries, each a button showing a type badge and the
-   value. Hidden when history is empty.
+5. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
+   value, click to reopen) and a 🗑 delete button that's invisible until the row is
+   hovered or focused. Hidden when history is empty.
 
 The Ticket input is focused on open, once the repo URL is configured.
 
@@ -155,10 +156,13 @@ getBase() / setBase(url)                       // chrome.storage.sync, key "base
 getTargetBranch() / setTargetBranch(branch)     // chrome.storage.sync, key "targetBranch"
 getUsername() / setUsername(username)          // chrome.storage.sync, key "username"
 getHistory() / pushHistory(e)                   // chrome.storage.local, key "history"
+removeHistory(url)                             // chrome.storage.local, key "history"
 ```
 
 `pushHistory` prepends `{type, value, url, ts}`, removes any earlier entry with the
-same `url`, and truncates to 8.
+same `url`, and truncates to 8. `removeHistory` filters out the entry matching
+`url` and persists the rest; both return the resulting array so `popup.js` can
+re-render straight from the return value without a second read.
 
 Base URL, target branch, and username all live in `sync` so they follow the user
 across machines; history lives in `local` because it is machine-specific noise.
@@ -169,7 +173,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
   "commands": {
@@ -204,9 +208,15 @@ the input as it is.
 row, enable the inputs, focus Ticket. On failure, show an error next to the base
 input.
 
-**On clicking a history entry:** open its stored URL in a new tab and close the popup.
-The stored URL is used directly — no re-parsing, so entries stay valid even if the
-base URL later changes.
+**On clicking a history entry's nav button:** open its stored URL in a new tab and
+close the popup. The stored URL is used directly — no re-parsing, so entries stay
+valid even if the base URL later changes.
+
+**On clicking a history entry's 🗑 button:** `renderHistory(await
+removeHistory(entry.url))` — remove it from storage and re-render from the
+returned array, without closing the popup or navigating. The delete button is a
+sibling of the nav button, not nested inside it, so the click can't also trigger
+navigation.
 
 **On open, independently of the above:** query the active tab's URL and try
 `swapMrBranches(tab.url)`. If it succeeds, show the "Swap source/target branches"
@@ -259,8 +269,12 @@ missing from the exception message.
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a
-new-MR tab, and MR-c/MR-a/MR-as routing to settings with the right inline error when
-unconfigured.
+new-MR tab, MR-c/MR-a/MR-as routing to settings with the right inline error when
+unconfigured, and deleting a recent entry removing only that one without navigating.
+
+`removeHistory` itself is not unit-tested — like the rest of `lib/storage.js`, it's a
+thin `chrome.storage` wrapper with no branching logic worth a real vs. mocked-Chrome
+test; `getHistory`/`pushHistory` were never tested either, for the same reason.
 
 ## Decisions
 
@@ -290,3 +304,11 @@ unconfigured.
   unauthenticated way for a content-free extension to know "who am I" — the only
   honest option is to ask once and store it. Both MR-a and MR-as share it, since
   they're the same GitLab account.
+- **Delete button hidden until hover/focus, not always visible.** The recent list is
+  meant to be scanned quickly; a permanently visible 🗑 next to every row adds visual
+  noise for an action used rarely. `:hover`/`:focus-within` costs nothing in
+  JavaScript and keeps the row keyboard-reachable.
+- **Delete is a sibling button, not a nested one.** Nesting the 🗑 inside the nav
+  button would need `stopPropagation` to stop delete clicks from also navigating,
+  and stray clicks near the edge could hit the wrong target. Two independent
+  buttons in one row need no coordination.
