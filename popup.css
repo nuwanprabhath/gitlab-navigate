@@ -70,17 +70,19 @@ button:hover {
   border-color: var(--accent);
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.group {
+  margin-bottom: 12px;
 }
 
-.header-actions button:not(#settings-toggle) {
-  padding: 3px 6px;
-  font-size: 10.5px;
+.group-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.group-buttons button {
+  flex: 1;
+  padding: 6px 8px;
   font-weight: 600;
-  white-space: nowrap;
 }
 
 #settings-toggle {
@@ -190,7 +192,8 @@ input[type="text"]:disabled {
 }
 
 .recent-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: 62px 1fr;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -229,10 +232,11 @@ input[type="text"]:disabled {
 }
 
 .badge {
-  flex: none;
-  min-width: 52px;
-  padding: 1px 6px;
-  font-size: 10px;
+  overflow: hidden;
+  padding: 1px 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: center;
@@ -241,7 +245,7 @@ input[type="text"]:disabled {
   border-radius: 4px;
 }
 
-.recent button:hover .badge {
+.recent-nav:hover .badge {
   color: var(--accent);
 }
 

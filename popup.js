@@ -1,10 +1,9 @@
 import {
   ParseError,
-  assigneeMrUrl,
-  assignedMrUrl,
+  authorMrUrl,
   buildUrl,
-  newMrUrl,
   normalizeBase,
+  reviewerMrUrl,
   swapMrBranches,
 } from './lib/parse.js';
 import {
@@ -26,7 +25,7 @@ const LABELS = {
   history: 'History',
   pipeline: 'Pipeline',
   job: 'Job',
-  createMr: 'Create MR',
+  createMr: 'Create',
 };
 
 const settings = document.getElementById('settings');
@@ -40,12 +39,12 @@ const targetBranchError = document.getElementById('target-branch-error');
 const usernameInput = document.getElementById('username-input');
 const usernameSave = document.getElementById('username-save');
 const usernameError = document.getElementById('username-error');
-const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
+const refInputs = [...document.querySelectorAll('input[data-type]')];
+const ticketInput = document.getElementById('ticket');
 const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
-const mrCreate = document.getElementById('mr-create');
-const mrAssigned = document.getElementById('mr-assigned');
-const mrAssignee = document.getElementById('mr-assignee');
+const mrReviewer = document.getElementById('mr-reviewer');
+const mrAuthor = document.getElementById('mr-author');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -169,7 +168,7 @@ async function saveBase() {
   await setBase(base);
   closeSettings();
   setInputsEnabled(true);
-  refInputs[0].focus();
+  ticketInput.focus();
 }
 
 async function checkSwapMr() {
@@ -217,15 +216,6 @@ async function saveUsername() {
   await setUsername(username);
 }
 
-function goToNewMr() {
-  if (!base) {
-    openSettings();
-    showError(baseError, 'Set your GitLab repo URL first');
-    return;
-  }
-  navigate(newMrUrl(base));
-}
-
 function goToMrList(buildMrListUrl) {
   if (!base) {
     openSettings();
@@ -263,9 +253,8 @@ baseInput.addEventListener('keydown', (event) => {
 
 swapMrButton.addEventListener('click', doSwapMr);
 
-mrCreate.addEventListener('click', goToNewMr);
-mrAssigned.addEventListener('click', () => goToMrList(assignedMrUrl));
-mrAssignee.addEventListener('click', () => goToMrList(assigneeMrUrl));
+mrReviewer.addEventListener('click', () => goToMrList(reviewerMrUrl));
+mrAuthor.addEventListener('click', () => goToMrList(authorMrUrl));
 
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {
@@ -290,7 +279,7 @@ async function init() {
 
   if (base) {
     setInputsEnabled(true);
-    refInputs[0].focus();
+    ticketInput.focus();
   } else {
     // First run: explain what is missing instead of failing on submit.
     setInputsEnabled(false);

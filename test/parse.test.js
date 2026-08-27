@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import {
   ParseError,
-  assigneeMrUrl,
-  assignedMrUrl,
+  authorMrUrl,
+  reviewerMrUrl,
   buildUrl,
-  newMrUrl,
   normalizeBase,
   swapMrBranches,
 } from '../lib/parse.js';
@@ -310,56 +309,46 @@ describe('buildUrl input handling', () => {
   });
 });
 
-describe('newMrUrl', () => {
-  test('builds the blank new-MR page', () => {
-    expect(newMrUrl(BASE)).toBe(`${BASE}/-/merge_requests/new`);
-  });
-
-  test('rejects a missing base URL', () => {
-    expect(() => newMrUrl('')).toThrow(ParseError);
-  });
-});
-
-describe('assignedMrUrl', () => {
-  test('builds the opened-MRs-assigned-to-me URL', () => {
-    expect(assignedMrUrl(BASE, 'nuwan-tern')).toBe(
+describe('reviewerMrUrl', () => {
+  test('builds the opened-MRs-where-I-am-reviewer URL', () => {
+    expect(reviewerMrUrl(BASE, 'nuwan-tern')).toBe(
       `${BASE}/-/merge_requests/?sort=created_date&state=opened&reviewer_username=nuwan-tern&first_page_size=100`,
     );
   });
 
   test('encodes a username with special characters', () => {
-    expect(assignedMrUrl(BASE, 'a b')).toBe(
+    expect(reviewerMrUrl(BASE, 'a b')).toBe(
       `${BASE}/-/merge_requests/?sort=created_date&state=opened&reviewer_username=a+b&first_page_size=100`,
     );
   });
 
   test('rejects a missing base URL', () => {
-    expect(() => assignedMrUrl('', 'nuwan-tern')).toThrow(ParseError);
+    expect(() => reviewerMrUrl('', 'nuwan-tern')).toThrow(ParseError);
   });
 
   test('rejects a missing username', () => {
-    expect(() => assignedMrUrl(BASE, '')).toThrow(ParseError);
+    expect(() => reviewerMrUrl(BASE, '')).toThrow(ParseError);
   });
 });
 
-describe('assigneeMrUrl', () => {
-  test('builds the opened-MRs-where-I-am-assignee URL', () => {
-    expect(assigneeMrUrl(BASE, 'nuwan-tern')).toBe(
-      `${BASE}/-/merge_requests/?sort=created_date&state=opened&assignee_username=nuwan-tern&first_page_size=100`,
+describe('authorMrUrl', () => {
+  test('builds the opened-MRs-I-authored URL', () => {
+    expect(authorMrUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&author_username=nuwan-tern&first_page_size=100`,
     );
   });
 
   test('encodes a username with special characters', () => {
-    expect(assigneeMrUrl(BASE, 'a b')).toBe(
-      `${BASE}/-/merge_requests/?sort=created_date&state=opened&assignee_username=a+b&first_page_size=100`,
+    expect(authorMrUrl(BASE, 'a b')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&author_username=a+b&first_page_size=100`,
     );
   });
 
   test('rejects a missing base URL', () => {
-    expect(() => assigneeMrUrl('', 'nuwan-tern')).toThrow(ParseError);
+    expect(() => authorMrUrl('', 'nuwan-tern')).toThrow(ParseError);
   });
 
   test('rejects a missing username', () => {
-    expect(() => assigneeMrUrl(BASE, '')).toThrow(ParseError);
+    expect(() => authorMrUrl(BASE, '')).toThrow(ParseError);
   });
 });

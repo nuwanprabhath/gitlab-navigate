@@ -8,16 +8,9 @@
   <body>
     <header>
       <h1>GitLab Navigate</h1>
-      <div class="header-actions">
-        <button id="mr-create" type="button" title="New merge request">MR-c</button>
-        <button id="mr-assigned" type="button" title="MRs assigned to me for review">
-          MR-a
-        </button>
-        <button id="mr-assignee" type="button" title="MRs assigned to me">MR-as</button>
-        <button id="settings-toggle" type="button" title="Repo settings" aria-label="Repo settings">
-          &#9881;
-        </button>
-      </div>
+      <button id="settings-toggle" type="button" title="Repo settings" aria-label="Repo settings">
+        &#9881;
+      </button>
     </header>
 
     <section id="settings" class="settings" hidden>
@@ -58,57 +51,20 @@
       <p class="error" id="username-error" hidden></p>
     </section>
 
-    <form id="refs" autocomplete="off">
-      <div class="field">
-        <label for="ticket">Ticket</label>
-        <input id="ticket" data-type="ticket" type="text" spellcheck="false" placeholder="2795" />
-        <p class="error" data-error-for="ticket" hidden></p>
+    <section class="group">
+      <h2>MRs</h2>
+      <div class="group-buttons">
+        <button id="mr-reviewer" type="button" title="Open MRs where I'm a reviewer">
+          Reviewer
+        </button>
+        <button id="mr-author" type="button" title="Open MRs I opened">Author</button>
       </div>
+    </section>
 
+    <section class="group">
+      <h2>Create</h2>
       <div class="field">
-        <label for="mr">MR</label>
-        <input id="mr" data-type="mr" type="text" spellcheck="false" placeholder="1122" />
-        <p class="error" data-error-for="mr" hidden></p>
-      </div>
-
-      <div class="field">
-        <label for="commit">Commit</label>
-        <input id="commit" data-type="commit" type="text" spellcheck="false" placeholder="5c3f861" />
-        <p class="error" data-error-for="commit" hidden></p>
-      </div>
-
-      <div class="field">
-        <label for="history">History</label>
-        <input
-          id="history"
-          data-type="history"
-          type="text"
-          spellcheck="false"
-          placeholder="dev/1.0.11"
-        />
-        <p class="error" data-error-for="history" hidden></p>
-      </div>
-
-      <div class="field">
-        <label for="pipeline">Pipeline</label>
-        <input
-          id="pipeline"
-          data-type="pipeline"
-          type="text"
-          spellcheck="false"
-          placeholder="2753700544"
-        />
-        <p class="error" data-error-for="pipeline" hidden></p>
-      </div>
-
-      <div class="field">
-        <label for="job">Job</label>
-        <input id="job" data-type="job" type="text" spellcheck="false" placeholder="15853756077" />
-        <p class="error" data-error-for="job" hidden></p>
-      </div>
-
-      <div class="field">
-        <label for="create-mr">Create MR</label>
+        <label for="create-mr">Branch</label>
         <input
           id="create-mr"
           data-type="createMr"
@@ -118,7 +74,60 @@
         />
         <p class="error" data-error-for="create-mr" hidden></p>
       </div>
-    </form>
+    </section>
+
+    <section class="group">
+      <h2>Go to</h2>
+      <form id="refs" autocomplete="off">
+        <div class="field">
+          <label for="ticket">Ticket</label>
+          <input id="ticket" data-type="ticket" type="text" spellcheck="false" placeholder="2795" />
+          <p class="error" data-error-for="ticket" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="mr">MR</label>
+          <input id="mr" data-type="mr" type="text" spellcheck="false" placeholder="1122" />
+          <p class="error" data-error-for="mr" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="commit">Commit</label>
+          <input id="commit" data-type="commit" type="text" spellcheck="false" placeholder="5c3f861" />
+          <p class="error" data-error-for="commit" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="history">History</label>
+          <input
+            id="history"
+            data-type="history"
+            type="text"
+            spellcheck="false"
+            placeholder="dev/1.0.11"
+          />
+          <p class="error" data-error-for="history" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="pipeline">Pipeline</label>
+          <input
+            id="pipeline"
+            data-type="pipeline"
+            type="text"
+            spellcheck="false"
+            placeholder="2753700544"
+          />
+          <p class="error" data-error-for="pipeline" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="job">Job</label>
+          <input id="job" data-type="job" type="text" spellcheck="false" placeholder="15853756077" />
+          <p class="error" data-error-for="job" hidden></p>
+        </div>
+      </form>
+    </section>
 
     <section id="swap-mr" class="swap-mr" hidden>
       <button id="swap-mr-button" type="button">&#8646; Swap source/target branches</button>

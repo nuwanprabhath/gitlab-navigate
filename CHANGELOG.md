@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.0
+
+- Reorganised the popup into labelled sections. The MR list buttons moved out of the
+  cramped header into an **MRs** section and were renamed for clarity: **Reviewer**
+  (MRs awaiting my review) and **Author** (MRs I opened). The Create MR box moved to
+  its own **Create** section, and the remaining reference boxes sit under **Go to**.
+- Removed the **MR-c** button. The Create section covers creating an MR, and the blank
+  new-MR page it opened is one click away inside GitLab.
+- **Author** now filters on `author_username`. The button it replaces (MR-as) filtered
+  on `assignee_username`; see README for why the label and the filter now match.
+- Pinned the extension ID with a manifest `key`, so settings survive a re-install or a
+  move of the extension folder instead of landing in a fresh, empty storage bucket.
+- Recent entries now align: the type badge sits in a fixed-width column, so every
+  value starts at the same left edge regardless of badge length.
+
 ## 0.7.0
 
 - Recent entries now show a 🗑 delete button on hover (or keyboard focus), so a
