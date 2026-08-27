@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   ParseError,
-  authorMrUrl,
+  mineMrUrl,
   reviewerMrUrl,
   buildUrl,
   normalizeBase,
@@ -331,24 +331,24 @@ describe('reviewerMrUrl', () => {
   });
 });
 
-describe('authorMrUrl', () => {
-  test('builds the opened-MRs-I-authored URL', () => {
-    expect(authorMrUrl(BASE, 'nuwan-tern')).toBe(
-      `${BASE}/-/merge_requests/?sort=created_date&state=opened&author_username=nuwan-tern&first_page_size=100`,
+describe('mineMrUrl', () => {
+  test('builds the opened-MRs-assigned-to-me URL', () => {
+    expect(mineMrUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&assignee_username=nuwan-tern&first_page_size=100`,
     );
   });
 
   test('encodes a username with special characters', () => {
-    expect(authorMrUrl(BASE, 'a b')).toBe(
-      `${BASE}/-/merge_requests/?sort=created_date&state=opened&author_username=a+b&first_page_size=100`,
+    expect(mineMrUrl(BASE, 'a b')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&assignee_username=a+b&first_page_size=100`,
     );
   });
 
   test('rejects a missing base URL', () => {
-    expect(() => authorMrUrl('', 'nuwan-tern')).toThrow(ParseError);
+    expect(() => mineMrUrl('', 'nuwan-tern')).toThrow(ParseError);
   });
 
   test('rejects a missing username', () => {
-    expect(() => authorMrUrl(BASE, '')).toThrow(ParseError);
+    expect(() => mineMrUrl(BASE, '')).toThrow(ParseError);
   });
 });

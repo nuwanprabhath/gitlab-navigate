@@ -19,7 +19,16 @@ Two buttons under the **MRs** heading, each opening a filtered MR list (open, ne
 first, 100 per page):
 
 - **Reviewer** — MRs where you're requested as a reviewer (`reviewer_username`).
-- **Author** — MRs you opened (`author_username`).
+- **Mine** — MRs assigned to you (`assignee_username`), i.e. the ones you have to deal
+  with.
+
+**Mine** is assignee-filtered rather than a true "authored or assigned" union because
+GitLab can't express that in a URL: filter params AND together (`?author_username=you&
+assignee_username=you` means *both*, which is narrower), the MR list has a `not` hash
+but no `or` hash, and `scope` accepts only one of `created_by_me` / `assigned_to_me` /
+`reviews_for_me` / `all`. Since GitLab's new-MR form assigns the author by default,
+assignee covers your own MRs in practice — the one gap is an MR you opened and
+assigned to somebody else.
 
 Both need your GitLab username, set once in settings. Clicking either before the repo
 URL or username is configured opens settings with an inline error instead of failing
@@ -80,7 +89,7 @@ The gear button holds three fields:
   is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
   `…/paratoo-fdcp`. Self-hosted GitLab instances work; the URL just has to be http(s).
 - **Default MR target branch** — used by the Create MR box, e.g. `dev/1.0.11`.
-- **Your GitLab username** — used by the Reviewer and Author buttons, e.g.
+- **Your GitLab username** — used by the Reviewer and Mine buttons, e.g.
   `nuwan-tern`.
 
 All three are kept in `chrome.storage.sync`, so they follow your Chrome profile.

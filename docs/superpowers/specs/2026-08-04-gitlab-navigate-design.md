@@ -55,7 +55,7 @@ Fixed-width popup (~320px). Top to bottom:
 2. Settings row (hidden by default): base repo URL, default MR target branch, and
    your GitLab username, each its own labelled input + Save button + error line.
 3. Three labelled `.group` sections, each with an `<h2>`:
-   - **MRs** — the Reviewer and Author buttons, side by side.
+   - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Create** — the createMr branch box.
    - **Go to** — one labelled input row per remaining `buildUrl` type.
    Each input row has a label, a text input, and a hidden error `<span>` beneath it.
@@ -79,18 +79,18 @@ Pure, exported functions. No I/O.
 normalizeBase(input) -> string               // throws on invalid
 buildUrl(type, input, base, extra) -> string  // throws ParseError on invalid input
 reviewerMrUrl(base, username) -> string      // open MRs where username is reviewer
-authorMrUrl(base, username) -> string        // open MRs username opened
+mineMrUrl(base, username) -> string          // open MRs assigned to username
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
 
-`reviewerMrUrl` and `authorMrUrl` back the two **MRs** buttons. Unlike the text-box
+`reviewerMrUrl` and `mineMrUrl` back the two **MRs** buttons. Unlike the text-box
 types, they take no user-typed reference — just settings — so they sit outside the
 `type`/`buildUrl` dispatch table rather than inside it.
 
 Both build `.../-/merge_requests/?sort=created_date&state=opened&{param}={username}&
 first_page_size=100`, differing only in `{param}`: `reviewer_username` and
-`author_username` respectively, via a shared private
+`assignee_username` respectively, via a shared private
 `mrListUrl(base, username, param)` helper.
 
 `normalizeBase`:
@@ -179,7 +179,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
@@ -231,10 +231,10 @@ button and cache the swapped URL and tab id. This check does not depend on the b
 URL being configured — it only reads the tab that's already open. On click,
 `chrome.tabs.update(tabId, { url: swappedUrl })` and close the popup.
 
-**On clicking Reviewer or Author:** both go through a shared
+**On clicking Reviewer or Mine:** both go through a shared
 `goToMrList(buildMrListUrl)` in `popup.js`: check `base` then `username`, in that
 order; if either is unset, open settings and show that field's error. Otherwise
-`navigate(buildMrListUrl(base, username))`, passing `reviewerMrUrl` or `authorMrUrl`
+`navigate(buildMrListUrl(base, username))`, passing `reviewerMrUrl` or `mineMrUrl`
 respectively. The checks happen before calling the builder rather than catching its
 `ParseError`, so the code doesn't have to infer which field was missing from the
 exception message.
@@ -266,13 +266,13 @@ exception message.
 - `swapMrBranches`: swaps source/target branch params, preserves path and other query
   params, swaps project ids only when both are present, rejects a URL missing either
   branch param or that isn't a URL at all
-- `reviewerMrUrl` / `authorMrUrl`: build the reviewer- and author-filtered MR lists
+- `reviewerMrUrl` / `mineMrUrl`: build the reviewer- and assignee-filtered MR lists
   respectively, encode a username with special characters, reject a missing base URL
   or username
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a
-new-MR tab, Reviewer/Author routing to settings with the right inline error when
+new-MR tab, Reviewer/Mine routing to settings with the right inline error when
 unconfigured, and deleting a recent entry removing only that one without navigating.
 
 `removeHistory` itself is not unit-tested — like the rest of `lib/storage.js`, it's a
@@ -297,14 +297,18 @@ test; `getHistory`/`pushHistory` were never tested either, for the same reason.
   tab's URL because opening the popup is itself the qualifying user gesture — same
   guarantee, far smaller permission footprint. It also means the feature can't be
   broken by a GitLab front-end change, since it never touches the page's DOM.
-- **Reviewer and Author are two buttons, named for the GitLab field they filter.**
-  These started as MR-a/MR-as in the header, abbreviations that proved hard to find
-  and hard to decode. Renaming them to the role they filter on made the labels
-  self-explanatory — and forced a behaviour change: the button now labelled Author
-  filters `author_username`, where MR-as had filtered `assignee_username`. A button
-  labelled "Author" that returned assigned-to-me MRs would be a worse lie than the
-  abbreviation was. Assignee filtering is gone; it can come back as a third button
-  if the distinction turns out to matter in practice.
+- **Two MR buttons: Reviewer, and Mine.** These started as MR-a/MR-as in the header,
+  abbreviations that were hard to find and hard to decode. What the user actually
+  wants is one list of "MRs I have to deal with", with no author/assignee split.
+  GitLab cannot express that union in a URL — filter params AND together, the MR list
+  supports a `not` hash but no `or` hash, and `scope` is single-select
+  (`created_by_me` / `assigned_to_me` / `reviews_for_me` / `all`), all confirmed
+  against GitLab's merge-requests API docs. The alternatives were opening two tabs per
+  click, or an unfiltered `scope=all` list; the user chose assignee-only, which is the
+  union in practice because GitLab's new-MR form assigns the author by default. The
+  one gap — an MR you opened and assigned to somebody else — is accepted knowingly.
+  The button is named "Mine" rather than "Assignee" because it names the user's
+  intent, and the underlying filter is documented rather than implied by the label.
 - **Extension ID pinned with a manifest `key`, not a storage-migration layer.** The
   reported "settings clear on every update" was never a data-format problem — the keys
   have never changed, so there is nothing to migrate. It was an identity problem: a
@@ -317,7 +321,7 @@ test; `getHistory`/`pushHistory` were never tested either, for the same reason.
   little vertical space and make each control's purpose readable at a glance.
 - **Username is a third setting, not inferred.** GitLab has no reliable
   unauthenticated way for a content-free extension to know "who am I" — the only
-  honest option is to ask once and store it. Both Reviewer and Author share it, since
+  honest option is to ask once and store it. Both Reviewer and Mine share it, since
   they're the same GitLab account.
 - **Delete button hidden until hover/focus, not always visible.** The recent list is
   meant to be scanned quickly; a permanently visible 🗑 next to every row adds visual

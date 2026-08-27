@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0
+
+- Replaced the **Author** button with **Mine** (`assignee_username`) — one button for
+  the MRs you have to deal with, without an author/assignee split.
+- GitLab cannot return a true "author OR assignee" list: MR filter params AND
+  together, the MR list supports a `not` hash but no `or` hash, and `scope` is
+  single-select (`created_by_me` / `assigned_to_me` / `reviews_for_me` / `all`).
+  Assignee is the practical stand-in, since GitLab's new-MR form assigns the author by
+  default. An MR you authored but assigned to someone else will not appear.
+
 ## 0.8.0
 
 - Reorganised the popup into labelled sections. The MR list buttons moved out of the

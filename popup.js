@@ -1,7 +1,7 @@
 import {
   ParseError,
-  authorMrUrl,
   buildUrl,
+  mineMrUrl,
   normalizeBase,
   reviewerMrUrl,
   swapMrBranches,
@@ -44,7 +44,7 @@ const ticketInput = document.getElementById('ticket');
 const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
 const mrReviewer = document.getElementById('mr-reviewer');
-const mrAuthor = document.getElementById('mr-author');
+const mrMine = document.getElementById('mr-mine');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -254,7 +254,7 @@ baseInput.addEventListener('keydown', (event) => {
 swapMrButton.addEventListener('click', doSwapMr);
 
 mrReviewer.addEventListener('click', () => goToMrList(reviewerMrUrl));
-mrAuthor.addEventListener('click', () => goToMrList(authorMrUrl));
+mrMine.addEventListener('click', () => goToMrList(mineMrUrl));
 
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {
