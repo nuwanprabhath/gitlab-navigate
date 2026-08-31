@@ -12,6 +12,10 @@
 - One manifest serves both browsers. Chrome's `key` is kept so existing Chrome installs
   keep their pinned extension ID and their settings; Firefox ignores it and logs a
   harmless "unexpected property" warning, which the README now explains.
+- Minimum Firefox is 140 on desktop, declared separately from 142 on Android via
+  `gecko_android`. Both floors come only from `data_collection_permissions` support
+  (desktop 140, Android 142). A single 142 floor would have excluded Firefox ESR,
+  currently 140.x, which is what managed machines run.
 - README gained a Firefox install section covering temporary add-ons, signing an
   unlisted `.xpi` for a permanent install, and the shortcut collision with Firefox's
   find-previous binding.

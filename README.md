@@ -1,8 +1,7 @@
 # GitLab Navigate
 
 A Chrome and Firefox extension that turns a bare GitLab reference into a tab. Open the
-popup,
-paste a ticket number, MR number, commit hash, or branch name, press Enter.
+popup, paste a ticket number, MR number, commit hash, or branch name, press Enter.
 
 ## Install
 
@@ -33,6 +32,10 @@ Three Firefox-specific things to know:
   ignoring the Chrome-only `key` property (see [Settings survive
   updates](#settings-survive-updates)). It is a warning, not an error, and nothing
   breaks.
+- Minimum versions are Firefox **140** on desktop and **142** on Android. Both floors
+  come from `data_collection_permissions`, which desktop gained in 140 and Android in
+  142 — not from anything the extension itself does. 140 is deliberate: it is the
+  current ESR, so the extension installs on ESR machines.
 
 ## MRs
 
