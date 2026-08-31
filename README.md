@@ -1,9 +1,12 @@
 # GitLab Navigate
 
-A Chrome extension that turns a bare GitLab reference into a tab. Open the popup,
+A Chrome and Firefox extension that turns a bare GitLab reference into a tab. Open the
+popup,
 paste a ticket number, MR number, commit hash, or branch name, press Enter.
 
 ## Install
+
+### Chrome
 
 1. Open `chrome://extensions` and enable **Developer mode**.
 2. Click **Load unpacked** and pick this folder.
@@ -12,6 +15,24 @@ paste a ticket number, MR number, commit hash, or branch name, press Enter.
 
 The popup is also bound to **Cmd+Shift+G** (**Ctrl+Shift+G** on Windows/Linux). Change
 it at `chrome://extensions/shortcuts`.
+
+### Firefox
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on** and pick this folder's `manifest.json`.
+3. Set your GitLab repo URL as above.
+
+Three Firefox-specific things to know:
+
+- Temporary add-ons unload when Firefox closes, so those steps repeat each session. For
+  a permanent install, sign the folder as an unlisted add-on (`npx web-ext sign`) and
+  install the resulting `.xpi`.
+- The default shortcut collides with Firefox's built-in find-previous binding. Rebind it
+  at `about:addons` > gear > **Manage Extension Shortcuts**.
+- Loading logs one warning, `Reading manifest: Warning processing key`. That is Firefox
+  ignoring the Chrome-only `key` property (see [Settings survive
+  updates](#settings-survive-updates)). It is a warning, not an error, and nothing
+  breaks.
 
 ## MRs
 
@@ -92,8 +113,10 @@ The gear button holds three fields:
 - **Your GitLab username** — used by the Reviewer and Mine buttons, e.g.
   `nuwan-tern`.
 
-All three are kept in `chrome.storage.sync`, so they follow your Chrome profile.
-Recent history is kept in `chrome.storage.local`.
+All three are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
+Firefox the same storage follows your Firefox Account; without one signed in it behaves
+as local storage and stays on that machine. Recent history is kept in
+`chrome.storage.local`.
 
 ### Settings survive updates
 
@@ -108,11 +131,23 @@ removing and re-adding did.
 
 ## Development
 
-No build step. Vanilla JS, Manifest V3.
+No build step. Vanilla JS, Manifest V3, no background service worker.
+
+One codebase covers both browsers. Firefox aliases the `chrome.*` namespace and, under
+Manifest V3, returns promises from it, so every `chrome.tabs.*` and `chrome.storage.*`
+call works unchanged with no polyfill. The only Firefox-specific manifest entry is
+`browser_specific_settings.gecko`, which supplies the add-on ID that Manifest V3
+requires. Chrome ignores that key, Firefox ignores `key`.
 
 ```
 bun test        # unit tests for lib/parse.js
 ```
 
 `lib/parse.js` is pure reference-to-URL translation with no Chrome dependencies;
-`popup.js` holds all DOM and Chrome API wiring; `lib/storage.js` owns the storage keys.
+`popup.js` holds all DOM and extension API wiring; `lib/storage.js` owns the storage
+keys.
+
+```
+npx web-ext lint    # validates the manifest against Firefox/AMO rules
+npx web-ext run     # launches a scratch Firefox with the extension loaded
+```

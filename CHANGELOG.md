@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.0
+
+- Added Firefox support. Manifest V3 in Firefox requires an explicit add-on ID, so
+  `manifest.json` now carries a `browser_specific_settings.gecko` block; without it
+  Firefox refuses to load the extension at all.
+- No JavaScript changed. Firefox aliases the `chrome.*` namespace and returns promises
+  from it under Manifest V3, so the existing `chrome.tabs.*` and `chrome.storage.*`
+  calls work as-is, with no polyfill and no `browser.*` rewrite. The extension has no
+  background service worker, which is the usual Manifest V3 porting blocker.
+- One manifest serves both browsers. Chrome's `key` is kept so existing Chrome installs
+  keep their pinned extension ID and their settings; Firefox ignores it and logs a
+  harmless "unexpected property" warning, which the README now explains.
+- README gained a Firefox install section covering temporary add-ons, signing an
+  unlisted `.xpi` for a permanent install, and the shortcut collision with Firefox's
+  find-previous binding.
+
 ## 0.9.0
 
 - Replaced the **Author** button with **Mine** (`assignee_username`) — one button for
