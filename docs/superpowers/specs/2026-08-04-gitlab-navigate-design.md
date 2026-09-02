@@ -54,9 +54,10 @@ Fixed-width popup (~320px). Top to bottom:
 1. Header row: title and the gear button (toggles the settings row).
 2. Settings row (hidden by default): base repo URL, default MR target branch, and
    your GitLab username, each its own labelled input + Save button + error line.
-3. Four labelled `.group` sections, each with an `<h2>`:
+3. Five labelled `.group` sections, each with an `<h2>`:
    - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
+   - **Pipelines** — the Running and Mine buttons, side by side.
    - **Create** — the createMr branch box.
    - **Go to** — one labelled input row per remaining `buildUrl` type.
    Each input row has a label, a text input, and a hidden error `<span>` beneath it.
@@ -84,6 +85,8 @@ mineMrUrl(base, username) -> string          // open MRs assigned to username
 assignedTicketsUrl(base, username) -> string     // work items assigned to username
 inProgressTicketsUrl(base, username) -> string   // ...with status "In progress"
 authoredTicketsUrl(base, username) -> string     // work items username opened
+runningPipelinesUrl(base) -> string              // all running pipelines
+myPipelinesUrl(base, username) -> string         // running pipelines username triggered
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
@@ -111,6 +114,12 @@ status as `status`. The helper rewrites `+` to `%20` after `URLSearchParams`, so
 all. Status is an Ultimate feature (GA in 18.4), so on a lesser tier the In progress
 button degrades to "everything assigned to me" rather than erroring — acceptable,
 since this repo is on a tier that has it.
+
+The two pipeline builders share a private `pipelineListUrl(base, extra)` and target
+`{base}/-/pipelines?status=running&scope=all`, taken from working URLs. `scope=all`
+matters: without it GitLab scopes the list to the default branch. `runningPipelinesUrl`
+is the only list builder that takes no username, which is why `popup.js` needs a second
+guard (see Data Flow) rather than reusing the username-gated one.
 
 `normalizeBase`:
 - trim whitespace
@@ -198,7 +207,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
@@ -250,11 +259,17 @@ button and cache the swapped URL and tab id. This check does not depend on the b
 URL being configured — it only reads the tab that's already open. On click,
 `chrome.tabs.update(tabId, { url: swappedUrl })` and close the popup.
 
-**On clicking any MRs or Tickets button:** all five go through a shared
-`goToUserList(buildListUrl)` in `popup.js`: check `base` then `username`, in that
+**On clicking a username-filtered list button** (both MRs, all three Tickets, and
+Pipelines > Mine): all six go through a shared `goToUserList(buildListUrl)` in
+`popup.js`: check `base` then `username`, in that
 order; if either is unset, open settings and show that field's error. Otherwise
 `navigate(buildListUrl(base, username))`, passing the matching builder. The guard is
-not MR-specific: every one of these buttons needs exactly the same two settings. The checks happen before calling the builder rather than catching its
+not MR-specific: every one of these buttons needs exactly the same two settings.
+
+**On clicking Pipelines > Running:** `goToBaseList(runningPipelinesUrl)` — the same
+shape, but it checks only `base`, because an unfiltered pipeline list needs no
+username. Routing it through `goToUserList` would have demanded a setting the URL
+never uses. The checks happen before calling the builder rather than catching its
 `ParseError`, so the code doesn't have to infer which field was missing from the
 exception message.
 
@@ -291,6 +306,8 @@ exception message.
 - `assignedTicketsUrl` / `inProgressTicketsUrl` / `authoredTicketsUrl`: build the three
   work-item lists, assert the exact URLs GitLab itself produces (including `%20` rather
   than `+` in the status), and reject a missing base URL or username
+- `runningPipelinesUrl` / `myPipelinesUrl`: build the two pipeline lists; the first
+  rejects only a missing base URL, the second a missing base URL or username
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a

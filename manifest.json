@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Jump straight to a GitLab ticket, merge request, commit, or branch history from a number, hash, or branch name.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAotDn8FQ+h+MuL+XUNkh4c9+V07IoitBKYFEJX/XhpuUGAz4FMN4NRYdsUoXz5vXhhJmfW/sXDQLP7Z3NMCyiyuyl07QrtrE8QZPbQk8DiJgFTU8McKUjQkNWKBspP8luYE4HfwJ+uru/kjiWoN0yYQ8aV9ATbYcsjc7j7Nr/Bns8SNCfCDYnF1KB/OEpdLu3tFMAjux4+ACNx2BzD2HA4Cxj81X6LXjZHu2kYIum/1cWVv7WjDOCvDlyCp61bbosx0QzWo4gthHygQbiaSeCDjCuQ1oN4eUmXULoSIlo1TTAcLnWax0KtcSz8rz7Ch98/1LVweEpC/L9I5BVBaCwSwIDAQAB",
   "browser_specific_settings": {

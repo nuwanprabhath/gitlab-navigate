@@ -5,8 +5,10 @@ import {
   buildUrl,
   inProgressTicketsUrl,
   mineMrUrl,
+  myPipelinesUrl,
   normalizeBase,
   reviewerMrUrl,
+  runningPipelinesUrl,
   swapMrBranches,
 } from './lib/parse.js';
 import {
@@ -51,6 +53,8 @@ const mrMine = document.getElementById('mr-mine');
 const ticketsAssigned = document.getElementById('tickets-assigned');
 const ticketsInProgress = document.getElementById('tickets-in-progress');
 const ticketsAuthored = document.getElementById('tickets-authored');
+const pipelinesRunning = document.getElementById('pipelines-running');
+const pipelinesMine = document.getElementById('pipelines-mine');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -222,6 +226,15 @@ async function saveUsername() {
   await setUsername(username);
 }
 
+function goToBaseList(buildListUrl) {
+  if (!base) {
+    openSettings();
+    showError(baseError, 'Set your GitLab repo URL first');
+    return;
+  }
+  navigate(buildListUrl(base));
+}
+
 function goToUserList(buildListUrl) {
   if (!base) {
     openSettings();
@@ -265,6 +278,9 @@ mrMine.addEventListener('click', () => goToUserList(mineMrUrl));
 ticketsAssigned.addEventListener('click', () => goToUserList(assignedTicketsUrl));
 ticketsInProgress.addEventListener('click', () => goToUserList(inProgressTicketsUrl));
 ticketsAuthored.addEventListener('click', () => goToUserList(authoredTicketsUrl));
+
+pipelinesRunning.addEventListener('click', () => goToBaseList(runningPipelinesUrl));
+pipelinesMine.addEventListener('click', () => goToUserList(myPipelinesUrl));
 
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {

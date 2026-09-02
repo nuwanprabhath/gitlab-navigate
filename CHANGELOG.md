@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0
+
+- Added a **Pipelines** section with two buttons, both scoped to running pipelines
+  across all refs (`status=running&scope=all`):
+  - **Running** — every running pipeline in the repo.
+  - **Mine** — running pipelines you triggered (`username`).
+- **Running** is the first list button that needs only the repo URL, not the username,
+  so it goes through its own guard and works before a username is set.
+
 ## 0.11.0
 
 - Added a **Tickets** section with three buttons, all filtering GitLab's work-item list

@@ -6,7 +6,9 @@ import {
   buildUrl,
   inProgressTicketsUrl,
   mineMrUrl,
+  myPipelinesUrl,
   normalizeBase,
+  runningPipelinesUrl,
   reviewerMrUrl,
   swapMrBranches,
 } from '../lib/parse.js';
@@ -391,5 +393,35 @@ describe('ticket list URLs', () => {
     for (const fn of [assignedTicketsUrl, inProgressTicketsUrl, authoredTicketsUrl]) {
       expect(() => fn(BASE, '')).toThrow(ParseError);
     }
+  });
+});
+
+describe('pipeline list URLs', () => {
+  test('running: all running pipelines, no user filter', () => {
+    expect(runningPipelinesUrl(BASE)).toBe(
+      `${BASE}/-/pipelines?status=running&scope=all`,
+    );
+  });
+
+  test('mine: running pipelines triggered by me', () => {
+    expect(myPipelinesUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/pipelines?status=running&scope=all&username=nuwan-tern`,
+    );
+  });
+
+  test('mine encodes a username with special characters', () => {
+    expect(myPipelinesUrl(BASE, 'a b')).toContain('username=a%20b');
+  });
+
+  test('running rejects a missing base URL', () => {
+    expect(() => runningPipelinesUrl('')).toThrow(ParseError);
+  });
+
+  test('mine rejects a missing base URL', () => {
+    expect(() => myPipelinesUrl('', 'nuwan-tern')).toThrow(ParseError);
+  });
+
+  test('mine rejects a missing username', () => {
+    expect(() => myPipelinesUrl(BASE, '')).toThrow(ParseError);
   });
 });

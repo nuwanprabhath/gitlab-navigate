@@ -75,6 +75,15 @@ everything assigned to you instead of erroring.
 All three use `state=all`, so closed work items are included. Like the MR buttons, they
 need your GitLab username from settings.
 
+## Pipelines
+
+Two buttons under the **Pipelines** heading, both filtered to running pipelines across
+all refs (`status=running&scope=all`, not just the default branch):
+
+- **Running** — every running pipeline in the repo. Needs only the repo URL, so it
+  works before you've set a username.
+- **Mine** — running pipelines you triggered (`username`).
+
 ## Create
 
 One box: paste a source branch, press Enter, and GitLab's new-merge-request page opens
@@ -130,7 +139,8 @@ The gear button holds three fields:
   is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
   `…/paratoo-fdcp`. Self-hosted GitLab instances work; the URL just has to be http(s).
 - **Default MR target branch** — used by the Create MR box, e.g. `dev/1.0.11`.
-- **Your GitLab username** — used by the MRs and Tickets buttons, e.g. `nuwan-tern`.
+- **Your GitLab username** — used by the MRs, Tickets, and Pipelines > Mine buttons,
+  e.g. `nuwan-tern`.
 
 All three are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
 Firefox the same storage follows your Firefox Account; without one signed in it behaves
