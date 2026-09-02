@@ -98,7 +98,8 @@ no more re-picking the target away from `main` every time.
 
 ## Go to
 
-Given the base URL above, each box under **Go to** takes a bare reference:
+Given the base URL above, each box under **Go to** takes a bare reference. They are
+laid out two per row, each with its name above the box and an example inside it:
 
 | Box      | You type       | It opens                                  |
 |----------|----------------|-------------------------------------------|

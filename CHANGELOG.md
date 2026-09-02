@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0
+
+- Compacted the **Go to** section from six full-width rows to a two-column grid, three
+  rows. Each field now carries a small caption label above the box instead of a label
+  column beside it, so the example placeholders (`2795`, `dev/1.0.11`, …) are kept.
+- Field labels are sentence case while section headings stay uppercase, so the two no
+  longer compete visually.
+- Whole popup is 495px tall, down from 557px, with no loss of information.
+
 ## 0.13.0
 
 - Added a third **Pipelines** button, **Authored** — every pipeline you triggered, in

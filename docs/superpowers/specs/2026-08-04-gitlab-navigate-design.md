@@ -59,8 +59,15 @@ Fixed-width popup (~320px). Top to bottom:
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
    - **Pipelines** — the Running, Mine and Authored buttons, side by side.
    - **Create** — the createMr branch box.
-   - **Go to** — one labelled input row per remaining `buildUrl` type.
-   Each input row has a label, a text input, and a hidden error `<span>` beneath it.
+   - **Go to** — a `.fields-grid`, two columns wide, holding one `.field` per
+     remaining `buildUrl` type.
+   Each `.field` is a flex column: a small sentence-case caption label, the text input,
+   and a hidden error `<p>` beneath. Stacking the label rather than seating it in a
+   left-hand column is what makes two fields fit per row at 320px, and it keeps the
+   example placeholders that a label-inside-the-box design would have displaced. Field
+   labels are sentence case so they do not read as section headings, which are
+   uppercase. In a grid row the error grows its own cell only, leaving its neighbour
+   top-aligned.
 4. "Swap source/target branches" button (hidden unless the active tab qualifies, see
    Data Flow).
 5. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
@@ -211,7 +218,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
@@ -314,7 +321,11 @@ exception message.
   pipeline lists; the first rejects only a missing base URL, the other two a missing
   base URL or username. Authored is asserted to carry no `status` param.
 
-UI wiring is verified manually by loading the unpacked extension: first-run settings
+The popup is rendered headlessly for layout checks — `Google Chrome --headless
+--screenshot --window-size=330,900` against `file://…/popup.html` — which catches
+spacing and hierarchy regressions without a browser session. The default, inline-error,
+and settings-open states were each checked that way. UI wiring is still verified
+manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a
 new-MR tab, Reviewer/Mine routing to settings with the right inline error when
 unconfigured, and deleting a recent entry removing only that one without navigating.
