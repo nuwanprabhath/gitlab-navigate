@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.1
+
+- Added popup screenshots to the README, in both colour schemes, served via `<picture>`
+  so they follow the reader's GitHub theme.
+- Added `tools/screenshot.sh`, which regenerates them from the real `popup.html` /
+  `popup.css`. Docs only; no change to the extension itself.
+- Added `web-ext-config.cjs` so tooling, tests and docs are excluded from the packaged
+  extension; without it `web-ext lint` flagged `tools/screenshot.sh` as an unexpected
+  file shipped inside the add-on.
+
 ## 0.14.0
 
 - Compacted the **Go to** section from six full-width rows to a two-column grid, three

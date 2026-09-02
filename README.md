@@ -3,6 +3,14 @@
 A Chrome and Firefox extension that turns a bare GitLab reference into a tab. Open the
 popup, paste a ticket number, MR number, commit hash, or branch name, press Enter.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/popup-dark.png">
+  <img src="docs/popup-light.png" alt="The GitLab Navigate popup: MRs, Tickets and Pipelines button rows, a Create branch box, a two-column Go to grid, and a Recent list." width="330">
+</picture>
+
+The screenshots are generated from the real markup by `./tools/screenshot.sh` — see
+[Development](#development).
+
 ## Install
 
 ### Chrome
@@ -183,3 +191,21 @@ keys.
 npx web-ext lint    # validates the manifest against Firefox/AMO rules
 npx web-ext run     # launches a scratch Firefox with the extension loaded
 ```
+
+`web-ext-config.cjs` keeps `tools/`, `docs/`, `test/` and the Markdown out of the
+packaged add-on — they belong in the repo, not in the `.xpi`.
+
+### Screenshots
+
+`./tools/screenshot.sh` re-renders `docs/popup-light.png` and `docs/popup-dark.png`
+from `popup.html` and `popup.css` using headless Chrome. **Run it after any change to
+the popup's markup or styles, and commit the updated PNGs**, so the README never shows
+a stale UI.
+
+It renders the real files rather than a mock-up: the popup's JavaScript is stripped
+(it needs the `chrome.*` APIs) and the Recent list is injected as static markup
+mirroring what `renderHistory()` builds. Headless Chrome ignores
+`--blink-settings=preferredColorScheme` and inherits the host appearance, so the script
+reads both palettes out of `popup.css` and re-applies the wanted one as a plain `:root`
+block — the values still come from the stylesheet, so the screenshots cannot drift
+from it.
