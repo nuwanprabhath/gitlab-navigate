@@ -57,7 +57,7 @@ Fixed-width popup (~320px). Top to bottom:
 3. Five labelled `.group` sections, each with an `<h2>`:
    - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
-   - **Pipelines** — the Running and Mine buttons, side by side.
+   - **Pipelines** — the Running, Mine and Authored buttons, side by side.
    - **Create** — the createMr branch box.
    - **Go to** — one labelled input row per remaining `buildUrl` type.
    Each input row has a label, a text input, and a hidden error `<span>` beneath it.
@@ -87,6 +87,7 @@ inProgressTicketsUrl(base, username) -> string   // ...with status "In progress"
 authoredTicketsUrl(base, username) -> string     // work items username opened
 runningPipelinesUrl(base) -> string              // all running pipelines
 myPipelinesUrl(base, username) -> string         // running pipelines username triggered
+authoredPipelinesUrl(base, username) -> string   // all pipelines username triggered
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
@@ -115,11 +116,14 @@ all. Status is an Ultimate feature (GA in 18.4), so on a lesser tier the In prog
 button degrades to "everything assigned to me" rather than erroring — acceptable,
 since this repo is on a tier that has it.
 
-The two pipeline builders share a private `pipelineListUrl(base, extra)` and target
-`{base}/-/pipelines?status=running&scope=all`, taken from working URLs. `scope=all`
-matters: without it GitLab scopes the list to the default branch. `runningPipelinesUrl`
-is the only list builder that takes no username, which is why `popup.js` needs a second
-guard (see Data Flow) rather than reusing the username-gated one.
+The three pipeline builders share a private `pipelineListUrl(base, params)` targeting
+`{base}/-/pipelines`, with each caller supplying its own params — they differ in both
+content and order from the URLs GitLab produces, so the helper deliberately hardcodes
+nothing but the path. `scope=all` is common to all three and matters: without it GitLab
+scopes the list to the default branch. Running and Mine pin `status=running`; Authored
+carries no status at all, making it a superset of Mine. `runningPipelinesUrl` is the
+only list builder that takes no username, which is why `popup.js` needs a second guard
+(see Data Flow) rather than reusing the username-gated one.
 
 `normalizeBase`:
 - trim whitespace
@@ -207,7 +211,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
@@ -260,7 +264,7 @@ URL being configured — it only reads the tab that's already open. On click,
 `chrome.tabs.update(tabId, { url: swappedUrl })` and close the popup.
 
 **On clicking a username-filtered list button** (both MRs, all three Tickets, and
-Pipelines > Mine): all six go through a shared `goToUserList(buildListUrl)` in
+Pipelines > Mine and Authored): all seven go through a shared `goToUserList(buildListUrl)` in
 `popup.js`: check `base` then `username`, in that
 order; if either is unset, open settings and show that field's error. Otherwise
 `navigate(buildListUrl(base, username))`, passing the matching builder. The guard is
@@ -306,8 +310,9 @@ exception message.
 - `assignedTicketsUrl` / `inProgressTicketsUrl` / `authoredTicketsUrl`: build the three
   work-item lists, assert the exact URLs GitLab itself produces (including `%20` rather
   than `+` in the status), and reject a missing base URL or username
-- `runningPipelinesUrl` / `myPipelinesUrl`: build the two pipeline lists; the first
-  rejects only a missing base URL, the second a missing base URL or username
+- `runningPipelinesUrl` / `myPipelinesUrl` / `authoredPipelinesUrl`: build the three
+  pipeline lists; the first rejects only a missing base URL, the other two a missing
+  base URL or username. Authored is asserted to carry no `status` param.
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a

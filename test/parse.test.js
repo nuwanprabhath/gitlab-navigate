@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   ParseError,
   assignedTicketsUrl,
+  authoredPipelinesUrl,
   authoredTicketsUrl,
   buildUrl,
   inProgressTicketsUrl,
@@ -423,5 +424,25 @@ describe('pipeline list URLs', () => {
 
   test('mine rejects a missing username', () => {
     expect(() => myPipelinesUrl(BASE, '')).toThrow(ParseError);
+  });
+});
+
+describe('authoredPipelinesUrl', () => {
+  test('all pipelines I triggered, any status', () => {
+    expect(authoredPipelinesUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/pipelines?username=nuwan-tern&scope=all`,
+    );
+  });
+
+  test('carries no status filter, unlike the other two', () => {
+    expect(authoredPipelinesUrl(BASE, 'nuwan-tern')).not.toContain('status=');
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => authoredPipelinesUrl('', 'nuwan-tern')).toThrow(ParseError);
+  });
+
+  test('rejects a missing username', () => {
+    expect(() => authoredPipelinesUrl(BASE, '')).toThrow(ParseError);
   });
 });

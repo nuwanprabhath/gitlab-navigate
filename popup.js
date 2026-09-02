@@ -1,6 +1,7 @@
 import {
   ParseError,
   assignedTicketsUrl,
+  authoredPipelinesUrl,
   authoredTicketsUrl,
   buildUrl,
   inProgressTicketsUrl,
@@ -55,6 +56,7 @@ const ticketsInProgress = document.getElementById('tickets-in-progress');
 const ticketsAuthored = document.getElementById('tickets-authored');
 const pipelinesRunning = document.getElementById('pipelines-running');
 const pipelinesMine = document.getElementById('pipelines-mine');
+const pipelinesAuthored = document.getElementById('pipelines-authored');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -281,6 +283,7 @@ ticketsAuthored.addEventListener('click', () => goToUserList(authoredTicketsUrl)
 
 pipelinesRunning.addEventListener('click', () => goToBaseList(runningPipelinesUrl));
 pipelinesMine.addEventListener('click', () => goToUserList(myPipelinesUrl));
+pipelinesAuthored.addEventListener('click', () => goToUserList(authoredPipelinesUrl));
 
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0
+
+- Added a third **Pipelines** button, **Authored** — every pipeline you triggered, in
+  any state. Unlike Running and Mine it carries no `status` filter, so it is a superset
+  of Mine.
+
 ## 0.12.0
 
 - Added a **Pipelines** section with two buttons, both scoped to running pipelines

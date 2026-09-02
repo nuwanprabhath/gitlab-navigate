@@ -77,12 +77,14 @@ need your GitLab username from settings.
 
 ## Pipelines
 
-Two buttons under the **Pipelines** heading, both filtered to running pipelines across
-all refs (`status=running&scope=all`, not just the default branch):
+Three buttons under the **Pipelines** heading, all using `scope=all` so they span every
+ref rather than just the default branch:
 
-- **Running** — every running pipeline in the repo. Needs only the repo URL, so it
-  works before you've set a username.
-- **Mine** — running pipelines you triggered (`username`).
+- **Running** — every running pipeline in the repo (`status=running`). Needs only the
+  repo URL, so it works before you've set a username.
+- **Mine** — running pipelines you triggered (`status=running` + `username`).
+- **Authored** — every pipeline you triggered, in any state. No `status` filter, so
+  this is a superset of **Mine**.
 
 ## Create
 
