@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0
+
+- Added a **Tickets** section with three buttons, all filtering GitLab's work-item list
+  for your configured username:
+  - **Assigned** — work items assigned to you.
+  - **In progress** — assigned to you with status `In progress`.
+  - **Authored** — work items you opened.
+- "In progress" uses GitLab's native work-item Status field, not a label; GitLab's issue
+  `state` is only `opened`/`closed` and cannot express it. The URLs match what the
+  work-item list produces itself: `assignee_username[]` (bracketed), `author_username`
+  (not bracketed), and `status`, with spaces encoded as `%20`.
+- All three use `state=all`, matching the views already in use, so closed work items are
+  included.
+
 ## 0.10.0
 
 - Added Firefox support. Manifest V3 in Firefox requires an explicit add-on ID, so

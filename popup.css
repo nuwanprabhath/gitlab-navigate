@@ -81,8 +81,11 @@ button:hover {
 
 .group-buttons button {
   flex: 1;
-  padding: 6px 8px;
+  min-width: 0;
+  padding: 6px 4px;
+  font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 #settings-toggle {

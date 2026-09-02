@@ -1,10 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import {
   ParseError,
-  mineMrUrl,
-  reviewerMrUrl,
+  assignedTicketsUrl,
+  authoredTicketsUrl,
   buildUrl,
+  inProgressTicketsUrl,
+  mineMrUrl,
   normalizeBase,
+  reviewerMrUrl,
   swapMrBranches,
 } from '../lib/parse.js';
 
@@ -350,5 +353,43 @@ describe('mineMrUrl', () => {
 
   test('rejects a missing username', () => {
     expect(() => mineMrUrl(BASE, '')).toThrow(ParseError);
+  });
+});
+
+describe('ticket list URLs', () => {
+  const U = 'nuwan-tern';
+
+  test('assigned: work items assigned to me', () => {
+    expect(assignedTicketsUrl(BASE, U)).toBe(
+      `${BASE}/-/work_items?sort=created_date&state=all&assignee_username%5B%5D=nuwan-tern&first_page_size=100`,
+    );
+  });
+
+  test('in progress: assigned to me with status In progress', () => {
+    expect(inProgressTicketsUrl(BASE, U)).toBe(
+      `${BASE}/-/work_items?sort=created_date&state=all&assignee_username%5B%5D=nuwan-tern&status=In%20progress&first_page_size=100`,
+    );
+  });
+
+  test('authored: work items I opened', () => {
+    expect(authoredTicketsUrl(BASE, U)).toBe(
+      `${BASE}/-/work_items?sort=created_date&state=all&author_username=nuwan-tern&first_page_size=100`,
+    );
+  });
+
+  test('encodes a space in the status as %20, not +', () => {
+    expect(inProgressTicketsUrl(BASE, U)).toContain('status=In%20progress');
+  });
+
+  test('each rejects a missing base URL', () => {
+    for (const fn of [assignedTicketsUrl, inProgressTicketsUrl, authoredTicketsUrl]) {
+      expect(() => fn('', U)).toThrow(ParseError);
+    }
+  });
+
+  test('each rejects a missing username', () => {
+    for (const fn of [assignedTicketsUrl, inProgressTicketsUrl, authoredTicketsUrl]) {
+      expect(() => fn(BASE, '')).toThrow(ParseError);
+    }
   });
 });

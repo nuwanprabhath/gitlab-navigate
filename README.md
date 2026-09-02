@@ -58,6 +58,23 @@ Both need your GitLab username, set once in settings. Clicking either before the
 URL or username is configured opens settings with an inline error instead of failing
 quietly.
 
+## Tickets
+
+Three buttons under the **Tickets** heading, each opening GitLab's work-item list
+filtered to your username, newest first, 100 per page:
+
+- **Assigned** — work items assigned to you (`assignee_username[]`).
+- **In progress** — assigned to you *and* status `In progress` (`status`).
+- **Authored** — work items you opened (`author_username`).
+
+"In progress" is GitLab's native work-item **Status** field, not a label — GitLab's own
+issue `state` is only `opened`/`closed`, so it can't express this. Status is an Ultimate
+feature (generally available in 18.4); on a tier without it that button returns
+everything assigned to you instead of erroring.
+
+All three use `state=all`, so closed work items are included. Like the MR buttons, they
+need your GitLab username from settings.
+
 ## Create
 
 One box: paste a source branch, press Enter, and GitLab's new-merge-request page opens
@@ -113,8 +130,7 @@ The gear button holds three fields:
   is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
   `…/paratoo-fdcp`. Self-hosted GitLab instances work; the URL just has to be http(s).
 - **Default MR target branch** — used by the Create MR box, e.g. `dev/1.0.11`.
-- **Your GitLab username** — used by the Reviewer and Mine buttons, e.g.
-  `nuwan-tern`.
+- **Your GitLab username** — used by the MRs and Tickets buttons, e.g. `nuwan-tern`.
 
 All three are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
 Firefox the same storage follows your Firefox Account; without one signed in it behaves

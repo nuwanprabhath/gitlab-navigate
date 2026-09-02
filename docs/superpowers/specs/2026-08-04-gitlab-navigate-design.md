@@ -4,7 +4,7 @@ Date: 2026-08-04
 
 ## Purpose
 
-A Chrome extension that turns a bare GitLab reference into a tab. Click the toolbar
+A Chrome and Firefox extension that turns a bare GitLab reference into a tab. Click the toolbar
 icon (or press the keyboard shortcut), paste a ticket number, MR number, commit hash,
 or branch name, press Enter, and the corresponding GitLab page opens in a new tab.
 
@@ -13,12 +13,12 @@ project.
 
 ## Scope
 
-In scope: popup with grouped MR shortcuts and reference inputs, configurable base repo
-URL / default MR target branch / GitLab username, recent-navigation list, keyboard
-shortcut.
+In scope: popup with grouped MR and ticket shortcuts plus reference inputs,
+configurable base repo URL / default MR target branch / GitLab username,
+recent-navigation list, keyboard shortcut. Chrome and Firefox from one manifest.
 
 Out of scope: GitLab API access, authentication, autocomplete, multiple saved repos,
-context-menu integration, Firefox/Safari builds.
+context-menu integration, Safari builds.
 
 ## Architecture
 
@@ -54,8 +54,9 @@ Fixed-width popup (~320px). Top to bottom:
 1. Header row: title and the gear button (toggles the settings row).
 2. Settings row (hidden by default): base repo URL, default MR target branch, and
    your GitLab username, each its own labelled input + Save button + error line.
-3. Three labelled `.group` sections, each with an `<h2>`:
+3. Four labelled `.group` sections, each with an `<h2>`:
    - **MRs** — the Reviewer and Mine buttons, side by side.
+   - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
    - **Create** — the createMr branch box.
    - **Go to** — one labelled input row per remaining `buildUrl` type.
    Each input row has a label, a text input, and a hidden error `<span>` beneath it.
@@ -80,6 +81,9 @@ normalizeBase(input) -> string               // throws on invalid
 buildUrl(type, input, base, extra) -> string  // throws ParseError on invalid input
 reviewerMrUrl(base, username) -> string      // open MRs where username is reviewer
 mineMrUrl(base, username) -> string          // open MRs assigned to username
+assignedTicketsUrl(base, username) -> string     // work items assigned to username
+inProgressTicketsUrl(base, username) -> string   // ...with status "In progress"
+authoredTicketsUrl(base, username) -> string     // work items username opened
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
@@ -92,6 +96,21 @@ Both build `.../-/merge_requests/?sort=created_date&state=opened&{param}={userna
 first_page_size=100`, differing only in `{param}`: `reviewer_username` and
 `assignee_username` respectively, via a shared private
 `mrListUrl(base, username, param)` helper.
+
+The three ticket builders share a private `ticketListUrl(base, username, filters)`
+helper and target `{base}/-/work_items`, GitLab's work-item list. Their filter params
+were taken from URLs that list page produces itself, and cross-checked against GitLab's
+frontend source (`work_items/list/constants.js`): assignee serialises as
+`assignee_username[]` (bracketed), author as `author_username` (not bracketed), and
+status as `status`. The helper rewrites `+` to `%20` after `URLSearchParams`, so
+`status=In%20progress` matches GitLab's own links byte for byte. All three use
+`state=all`, matching the views the user already works from.
+
+"In progress" is GitLab's native work-item **Status** field, not a label: GitLab's issue
+`state` is only `opened`/`closed`, and the REST issues API exposes no status filter at
+all. Status is an Ultimate feature (GA in 18.4), so on a lesser tier the In progress
+button degrades to "everything assigned to me" rather than erroring — acceptable,
+since this repo is on a tier that has it.
 
 `normalizeBase`:
 - trim whitespace
@@ -179,7 +198,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.9.0",
+  "version": "0.11.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "action": { "default_popup": "popup.html" },
@@ -231,11 +250,11 @@ button and cache the swapped URL and tab id. This check does not depend on the b
 URL being configured — it only reads the tab that's already open. On click,
 `chrome.tabs.update(tabId, { url: swappedUrl })` and close the popup.
 
-**On clicking Reviewer or Mine:** both go through a shared
-`goToMrList(buildMrListUrl)` in `popup.js`: check `base` then `username`, in that
+**On clicking any MRs or Tickets button:** all five go through a shared
+`goToUserList(buildListUrl)` in `popup.js`: check `base` then `username`, in that
 order; if either is unset, open settings and show that field's error. Otherwise
-`navigate(buildMrListUrl(base, username))`, passing `reviewerMrUrl` or `mineMrUrl`
-respectively. The checks happen before calling the builder rather than catching its
+`navigate(buildListUrl(base, username))`, passing the matching builder. The guard is
+not MR-specific: every one of these buttons needs exactly the same two settings. The checks happen before calling the builder rather than catching its
 `ParseError`, so the code doesn't have to infer which field was missing from the
 exception message.
 
@@ -269,6 +288,9 @@ exception message.
 - `reviewerMrUrl` / `mineMrUrl`: build the reviewer- and assignee-filtered MR lists
   respectively, encode a username with special characters, reject a missing base URL
   or username
+- `assignedTicketsUrl` / `inProgressTicketsUrl` / `authoredTicketsUrl`: build the three
+  work-item lists, assert the exact URLs GitLab itself produces (including `%20` rather
+  than `+` in the status), and reject a missing base URL or username
 
 UI wiring is verified manually by loading the unpacked extension: first-run settings
 state, each box, the shortcut, the history list, the swap button appearing only on a
@@ -316,6 +338,11 @@ test; `getHistory`/`pushHistory` were never tested either, for the same reason.
   fixes the cause; a migration layer would have added machinery that addressed
   nothing. The private half of the keypair is generated locally and gitignored — only
   the public key is needed to pin the ID for an unpacked install.
+- **Ticket filters copied from GitLab's own URLs, not guessed.** The param
+  serialisation is inconsistent — `assignee_username[]` is bracketed, `author_username`
+  is not — and guessing wrong fails silently by returning an unfiltered list rather
+  than erroring. The values were taken from working URLs and confirmed against GitLab's
+  frontend source, and the tests assert the full URL string so a regression is visible.
 - **The header holds only the gear.** Cramming action buttons into the header row
   made them small, unlabelled, and easy to miss. Labelled `.group` sections cost a
   little vertical space and make each control's purpose readable at a glance.

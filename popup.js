@@ -1,6 +1,9 @@
 import {
   ParseError,
+  assignedTicketsUrl,
+  authoredTicketsUrl,
   buildUrl,
+  inProgressTicketsUrl,
   mineMrUrl,
   normalizeBase,
   reviewerMrUrl,
@@ -45,6 +48,9 @@ const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
 const mrReviewer = document.getElementById('mr-reviewer');
 const mrMine = document.getElementById('mr-mine');
+const ticketsAssigned = document.getElementById('tickets-assigned');
+const ticketsInProgress = document.getElementById('tickets-in-progress');
+const ticketsAuthored = document.getElementById('tickets-authored');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -216,7 +222,7 @@ async function saveUsername() {
   await setUsername(username);
 }
 
-function goToMrList(buildMrListUrl) {
+function goToUserList(buildListUrl) {
   if (!base) {
     openSettings();
     showError(baseError, 'Set your GitLab repo URL first');
@@ -227,7 +233,7 @@ function goToMrList(buildMrListUrl) {
     showError(usernameError, 'Set your GitLab username first');
     return;
   }
-  navigate(buildMrListUrl(base, username));
+  navigate(buildListUrl(base, username));
 }
 
 for (const input of refInputs) {
@@ -253,8 +259,12 @@ baseInput.addEventListener('keydown', (event) => {
 
 swapMrButton.addEventListener('click', doSwapMr);
 
-mrReviewer.addEventListener('click', () => goToMrList(reviewerMrUrl));
-mrMine.addEventListener('click', () => goToMrList(mineMrUrl));
+mrReviewer.addEventListener('click', () => goToUserList(reviewerMrUrl));
+mrMine.addEventListener('click', () => goToUserList(mineMrUrl));
+
+ticketsAssigned.addEventListener('click', () => goToUserList(assignedTicketsUrl));
+ticketsInProgress.addEventListener('click', () => goToUserList(inProgressTicketsUrl));
+ticketsAuthored.addEventListener('click', () => goToUserList(authoredTicketsUrl));
 
 targetBranchSave.addEventListener('click', saveTargetBranch);
 targetBranchInput.addEventListener('keydown', (event) => {
