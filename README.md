@@ -94,15 +94,19 @@ ref rather than just the default branch:
 - **Authored** — every pipeline you triggered, in any state. No `status` filter, so
   this is a superset of **Mine**.
 
-## Create
+## Create MR
 
-One box: paste a source branch, press Enter, and GitLab's new-merge-request page opens
-with that source branch and your configured default target branch already selected —
-no more re-picking the target away from `main` every time.
+Two boxes. **From** takes the source branch; **To** is pre-filled with your default MR
+target branch and can be edited for a one-off. Press Enter in either and GitLab's
+new-merge-request page opens with both ends already selected — no re-picking the target
+away from `main` every time.
 
-| Box    | You type                              | It opens                                                       |
-|--------|---------------------------------------|----------------------------------------------------------------|
-| Branch | `fix-plot-layout-pro-expansion-issue` | new MR page, that branch as source, your default target branch |
+The **⇅** button between them swaps From and To. That covers the reverse direction:
+with `dev/1.0.12` as your default target, one click makes it the *source* so you can
+diff it against a feature branch.
+
+Both ends accept a leading `origin/` or `refs/heads/`, so pasting straight from
+`git branch -a` works.
 
 ## Go to
 
@@ -134,8 +138,8 @@ badge sits in a fixed-width column so every value lines up at the same left edge
 ## Swap branches on a "new merge request" page
 
 If GitLab's active tab is already on a `.../-/merge_requests/new?...` page (typically
-because you got there via the Create box), the popup shows a **Swap
-source/target branches** button. Click it and that tab reloads with source and
+because you got there via Create MR), the popup shows a **Swap
+source/target branches** button, directly beneath the Create MR section. Click it and that tab reloads with source and
 target swapped — handy when GitLab reports "these branches already have an open
 merge request" and you actually meant it the other way round.
 

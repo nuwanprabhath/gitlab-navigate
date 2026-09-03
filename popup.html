@@ -92,18 +92,39 @@
     </section>
 
     <section class="group">
-      <h2>Create</h2>
-      <div class="field">
-        <label for="create-mr">Branch</label>
-        <input
-          id="create-mr"
-          data-type="createMr"
-          type="text"
-          spellcheck="false"
-          placeholder="fix-plot-layout-pro-expansion-issue"
-        />
-        <p class="error" data-error-for="create-mr" hidden></p>
+      <h2>Create MR</h2>
+      <div class="from-to">
+        <div class="field">
+          <label for="mr-from">From</label>
+          <input
+            id="mr-from"
+            type="text"
+            spellcheck="false"
+            placeholder="fix-plot-layout-pro-expansion-issue"
+          />
+          <p class="error" data-error-for="mr-from" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="mr-to">To</label>
+          <input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" />
+          <p class="error" data-error-for="mr-to" hidden></p>
+        </div>
+
+        <button
+          id="from-to-swap"
+          class="from-to-swap"
+          type="button"
+          title="Swap From and To"
+          aria-label="Swap From and To"
+        >
+          &#8645;
+        </button>
       </div>
+    </section>
+
+    <section id="swap-mr" class="swap-mr" hidden>
+      <button id="swap-mr-button" type="button">&#8646; Swap source/target branches</button>
     </section>
 
     <section class="group">
@@ -147,10 +168,6 @@
           </div>
         </div>
       </form>
-    </section>
-
-    <section id="swap-mr" class="swap-mr" hidden>
-      <button id="swap-mr-button" type="button">&#8646; Swap source/target branches</button>
     </section>
 
     <section id="recent" class="recent" hidden>

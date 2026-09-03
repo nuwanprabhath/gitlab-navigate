@@ -113,6 +113,32 @@ button:hover {
   gap: 6px;
 }
 
+.from-to {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 6px;
+  align-items: end;
+}
+
+.from-to .field {
+  grid-column: 1;
+}
+
+/* One control spanning both rows, so the direction it flips is unambiguous. */
+.from-to-swap {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  padding: 6px 9px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.from-to-swap:hover {
+  color: var(--accent);
+}
+
 .fields-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -164,7 +190,8 @@ input[type="text"]:disabled {
 }
 
 .swap-mr {
-  margin-top: 10px;
+  margin-top: -2px;
+  margin-bottom: 12px;
 }
 
 .swap-mr button {

@@ -45,8 +45,11 @@ const targetBranchError = document.getElementById('target-branch-error');
 const usernameInput = document.getElementById('username-input');
 const usernameSave = document.getElementById('username-save');
 const usernameError = document.getElementById('username-error');
-const refInputs = [...document.querySelectorAll('input[data-type]')];
+const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
 const ticketInput = document.getElementById('ticket');
+const mrFrom = document.getElementById('mr-from');
+const mrTo = document.getElementById('mr-to');
+const fromToSwap = document.getElementById('from-to-swap');
 const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
 const mrReviewer = document.getElementById('mr-reviewer');
@@ -81,7 +84,7 @@ function errorFor(input) {
 }
 
 function setInputsEnabled(enabled) {
-  for (const input of refInputs) input.disabled = !enabled;
+  for (const input of [...refInputs, mrFrom, mrTo]) input.disabled = !enabled;
 }
 
 function openSettings() {
@@ -162,6 +165,47 @@ async function submitReference(input) {
   navigate(url);
 }
 
+async function submitCreateMr() {
+  const fromError = errorFor(mrFrom);
+  const toError = errorFor(mrTo);
+  clearError(fromError);
+  clearError(toError);
+
+  if (!mrFrom.value.trim()) {
+    showError(fromError, 'Enter a source branch name');
+    return;
+  }
+  if (!mrTo.value.trim()) {
+    showError(toError, 'Enter a target branch name');
+    return;
+  }
+
+  let url;
+  try {
+    url = buildUrl('createMr', mrFrom.value, base, mrTo.value);
+  } catch (err) {
+    if (err instanceof ParseError) {
+      showError(fromError, err.message);
+      return;
+    }
+    throw err;
+  }
+
+  await pushHistory({
+    type: 'createMr',
+    value: `${mrFrom.value.trim()} \u2192 ${mrTo.value.trim()}`,
+    url,
+  });
+  navigate(url);
+}
+
+function swapFromTo() {
+  [mrFrom.value, mrTo.value] = [mrTo.value, mrFrom.value];
+  clearError(errorFor(mrFrom));
+  clearError(errorFor(mrTo));
+  mrFrom.focus();
+}
+
 async function saveBase() {
   clearError(baseError);
 
@@ -211,8 +255,13 @@ async function saveTargetBranch() {
     return;
   }
 
+  const previous = targetBranch;
   targetBranch = trimmed;
   await setTargetBranch(targetBranch);
+
+  // Refresh the To box only while it still holds the old default, so a target the
+  // user typed by hand for this one MR survives a settings save.
+  if (!mrTo.value.trim() || mrTo.value.trim() === previous) mrTo.value = targetBranch;
 }
 
 async function saveUsername() {
@@ -273,6 +322,16 @@ baseInput.addEventListener('keydown', (event) => {
 });
 
 swapMrButton.addEventListener('click', doSwapMr);
+fromToSwap.addEventListener('click', swapFromTo);
+
+for (const input of [mrFrom, mrTo]) {
+  input.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    submitCreateMr();
+  });
+  input.addEventListener('input', () => clearError(errorFor(input)));
+}
 
 mrReviewer.addEventListener('click', () => goToUserList(reviewerMrUrl));
 mrMine.addEventListener('click', () => goToUserList(mineMrUrl));
@@ -303,6 +362,7 @@ async function init() {
   base = await getBase();
   targetBranch = await getTargetBranch();
   username = await getUsername();
+  mrTo.value = targetBranch;
   renderHistory(await getHistory());
   checkSwapMr();
 

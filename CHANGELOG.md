@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.15.0
+
+- **Create** is now **Create MR** and takes both ends of the merge request: the old
+  Branch box became **From**, and a new **To** box below it is pre-filled with your
+  default MR target branch but is editable per MR.
+- A ⇅ button between them swaps From and To, so raising the reverse MR — diffing your
+  target branch against a feature branch — is one click instead of retyping.
+- Enter in either box creates the MR.
+- The target branch now tolerates the same prefixes the source always did, so a pasted
+  `origin/dev/1.0.12` resolves to `dev/1.0.12` rather than becoming a literal branch
+  name.
+- Saving a new default target branch refreshes the To box only while it still holds the
+  old default, so a target typed by hand for one MR is not clobbered.
+- Moved the on-page "Swap source/target branches" button up, directly beneath Create
+  MR, so the two branch-direction controls sit together.
+- Recent entries for created MRs now read `from → to`, since the direction is the point.
+
 ## 0.14.1
 
 - Added popup screenshots to the README, in both colour schemes, served via `<picture>`

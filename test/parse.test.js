@@ -189,7 +189,13 @@ describe('buildUrl createMr', () => {
     );
   });
 
-  test('rejects when no target branch is configured', () => {
+  test('strips a leading origin/ from the target branch too', () => {
+    expect(buildUrl('createMr', 'my-branch', BASE, 'origin/dev/1.0.12')).toBe(
+      `${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=my-branch&merge_request%5Btarget_branch%5D=dev%2F1.0.12`,
+    );
+  });
+
+  test('rejects when no target branch is given', () => {
     expect(() => buildUrl('createMr', 'my-branch', BASE, '')).toThrow(ParseError);
   });
 

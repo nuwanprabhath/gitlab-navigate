@@ -49,6 +49,11 @@ html = (html
         .replace('<section id="recent" class="recent" hidden>', '<section id="recent" class="recent">')
         .replace('<ul id="recent-list"></ul>', f'<ul id="recent-list">{items}</ul>'))
 
+# The To box is pre-filled from settings at runtime; showing it as an empty
+# placeholder would misrepresent the resting state of the popup.
+html = html.replace('<input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" />',
+                    '<input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" value="dev/1.0.11" />')
+
 light = re.search(r'^:root\s*\{([^}]*)\}', css, re.M)
 dark = re.search(r'@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}', css)
 if not (light and dark):

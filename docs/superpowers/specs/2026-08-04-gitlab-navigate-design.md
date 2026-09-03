@@ -58,7 +58,8 @@ Fixed-width popup (~320px). Top to bottom:
    - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
    - **Pipelines** — the Running, Mine and Authored buttons, side by side.
-   - **Create** — the createMr branch box.
+   - **Create MR** — a `.from-to` grid: the From and To boxes stacked in column one,
+     with a ⇅ swap button spanning both rows in column two.
    - **Go to** — a `.fields-grid`, two columns wide, holding one `.field` per
      remaining `buildUrl` type.
    Each `.field` is a flex column: a small sentence-case caption label, the text input,
@@ -68,7 +69,8 @@ Fixed-width popup (~320px). Top to bottom:
    labels are sentence case so they do not read as section headings, which are
    uppercase. In a grid row the error grows its own cell only, leaving its neighbour
    top-aligned.
-4. "Swap source/target branches" button (hidden unless the active tab qualifies, see
+4. "Swap source/target branches" button, immediately beneath Create MR so both
+   branch-direction controls sit together (hidden unless the active tab qualifies, see
    Data Flow).
 5. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
    value, click to reopen) and a 🗑 delete button that's invisible until the row is
@@ -172,10 +174,13 @@ single input to the right one — they get their own boxes.
 `createMr` does not build a page that already exists (like every other type) — it
 builds GitLab's *new*-MR form pre-filled via query string, using GitLab's own
 `merge_request[source_branch]` / `merge_request[target_branch]` parameter names, so
-GitLab is not left to default the target to `main`. The target branch is a second
-setting (`targetBranch`, `chrome.storage.sync`) rather than a fifth text box, since it
-changes far less often than the source branch and belongs with the repo URL as
-one-time setup.
+GitLab is not left to default the target to `main`. Both ends get the same
+`stripBranchPrefixes` tolerance, because both now arrive from editable boxes.
+
+`targetBranch` in `chrome.storage.sync` remains the *default* for the To box rather
+than the only source of the target: it still changes far less often than the source
+branch, so it stays a setting, but it seeds an editable field instead of being applied
+invisibly. That is what makes a reverse MR possible without touching settings.
 
 Anything that fails its pattern throws a `ParseError` carrying a short human message.
 
@@ -245,7 +250,14 @@ no base URL is stored, the settings row is expanded, the reference inputs are
 disabled, and the base input is focused. Otherwise the inputs are enabled, history
 renders, and the Ticket input is focused.
 
-**On Enter in an input:** call `buildUrl(type, value, base)`. On success, call
+**On Enter in a From or To box:** `submitCreateMr()` reads *both* boxes regardless of
+which one has focus, checks each for emptiness so the error lands on the offending
+field, then calls `buildUrl('createMr', from, base, to)`. The ⇅ button swaps the two
+values in place and navigates nowhere. Create MR is therefore no longer part of the
+generic `[data-type]` dispatch — that path assumes one box yields one URL — which is
+why `refInputs` is scoped back to `#refs`.
+
+**On Enter in a Go to input:** call `buildUrl(type, value, base)`. On success, call
 `chrome.tabs.create({ url })`, `pushHistory(...)`, clear the input, and
 `window.close()`. On `ParseError`, show the message in that row's error span and leave
 the input as it is.
