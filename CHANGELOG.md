@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.16.0
+
+- Added **Pinned pipelines**, above Recent. Each row shows a coloured status glyph, the
+  pipeline number, its branch, and how long it has been running (or took), so you can
+  check several pipelines without loading a page.
+- On a pipeline page (`.../-/pipelines/2816150418`) the popup offers **Pin this
+  pipeline**. Pinned rows navigate to the pipeline on click and unpin on hover.
+- Status refreshes every time the popup opens. Cached values render immediately and are
+  replaced when the network call lands, so an offline popup still shows the last known
+  state instead of blanking.
+- This is the extension's first use of the GitLab API. It authenticates with your
+  existing GitLab session cookie — no token to create or store — and needs a host
+  permission, requested at runtime for your instance only the first time you pin. Deny
+  it and pinning still works; rows just show no status until access is granted.
+
 ## 0.15.0
 
 - **Create** is now **Create MR** and takes both ends of the merge request: the old

@@ -189,12 +189,12 @@ input[type="text"]:disabled {
   color: var(--error);
 }
 
-.swap-mr {
+.wide-action {
   margin-top: -2px;
   margin-bottom: 12px;
 }
 
-.swap-mr button {
+.wide-action button {
   width: 100%;
   padding: 7px 8px;
   font-weight: 600;
@@ -204,9 +204,97 @@ input[type="text"]:disabled {
   border-radius: 6px;
 }
 
-.swap-mr button:hover {
+.wide-action button:hover {
   background: var(--accent);
   color: #fff;
+}
+
+.pin-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pin-nav {
+  display: grid;
+  grid-template-columns: 15px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.pin-nav:hover {
+  background: var(--chip);
+}
+
+.pin-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.pin-id {
+  font-variant-numeric: tabular-nums;
+}
+
+.pin-ref,
+.pin-duration {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.pin-ref {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-duration {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status colours mirror GitLab's own pipeline badges. */
+.pin-status {
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  color: var(--muted);
+}
+
+.pin-status[data-status="success"] { color: #108548; }
+.pin-status[data-status="failed"] { color: #dd2b0e; }
+.pin-status[data-status="running"] { color: #1f75cb; }
+.pin-status[data-status="pending"],
+.pin-status[data-status="waiting_for_resource"] { color: #c17d10; }
+
+.pin-remove {
+  flex: none;
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  opacity: 0;
+}
+
+.pin-item:hover .pin-remove,
+.pin-item:focus-within .pin-remove {
+  opacity: 1;
+}
+
+.pin-remove:hover {
+  color: var(--error);
+  background: var(--chip);
 }
 
 .recent {

@@ -129,6 +129,32 @@ Input is forgiving everywhere: `#2795` and `!1122` work, commit hashes may be 7�
 characters in any case, branch names may carry a leading `origin/` or `refs/heads/`,
 and pasting a full GitLab URL into any box just opens that URL.
 
+## Pinned pipelines
+
+Start several pipelines, pin them, and check them all from the popup instead of loading
+the pipelines page each time. Each row shows a status glyph, the pipeline number, its
+branch, and elapsed time — running pipelines count up while the popup is open. Click a
+row to open the pipeline; hover it to reveal an unpin button.
+
+To pin: open a pipeline page (`.../-/pipelines/2816150418`) and the popup shows **Pin
+this pipeline**.
+
+Status is refreshed each time the popup opens. Cached values appear instantly and are
+replaced when the refresh lands, so the list still reads sensibly offline.
+
+### How it reads pipeline status
+
+This is the one feature that talks to the GitLab API
+(`/api/v4/projects/:path/pipelines/:id`). It authenticates with the `_gitlab_session`
+cookie your browser already has, so there is **no token to create, and none is stored**.
+
+That needs permission to make requests to your GitLab instance, which is declared as an
+*optional* permission and requested at runtime the first time you pin — your browser
+will ask, naming only that one host. Nothing is requested at install time, and the rest
+of the extension keeps working without it. If you decline, pinning still records the
+pipeline and clicking still opens it; the status and branch just stay blank until you
+grant access.
+
 ## Recent
 
 The last 8 places you visited are listed under **Recent** and are one click away.

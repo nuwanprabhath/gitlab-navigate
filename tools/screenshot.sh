@@ -54,6 +54,28 @@ html = (html
 html = html.replace('<input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" />',
                     '<input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" value="dev/1.0.11" />')
 
+# Pinned pipelines are fetched from the GitLab API at runtime, so they get the same
+# static treatment as Recent. Glyphs and statuses match STATUS_GLYPHS in popup.js.
+pins = [
+    ('running', '&#x25CF;', '2816150418', 'dev/1.0.11', '4m 12s'),
+    ('success', '&#x2713;', '2816150001', 'fix-plot-layout-pro-expansion-issue', '7m 3s'),
+    ('failed', '&#x2715;', '2815998877', '2846-regression-fix', '2m 41s'),
+]
+pin_items = '\n'.join(
+    f'<li class="pin-item">'
+    f'<button type="button" class="pin-nav">'
+    f'<span class="pin-status" data-status="{status}">{glyph}</span>'
+    f'<span class="pin-main"><span class="pin-id">#{pid}</span>'
+    f'<span class="pin-ref">{ref}</span></span>'
+    f'<span class="pin-duration">{duration}</span>'
+    f'</button>'
+    f'<button type="button" class="pin-remove" aria-label="Unpin this pipeline">&#x2715;</button>'
+    f'</li>'
+    for status, glyph, pid, ref, duration in pins)
+html = (html
+        .replace('<section id="pinned" class="recent" hidden>', '<section id="pinned" class="recent">')
+        .replace('<ul id="pinned-list"></ul>', f'<ul id="pinned-list">{pin_items}</ul>'))
+
 light = re.search(r'^:root\s*\{([^}]*)\}', css, re.M)
 dark = re.search(r'@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}', css)
 if not (light and dark):
@@ -66,7 +88,7 @@ PY
 
 for theme in light dark; do
   "$CHROME" --headless --disable-gpu --hide-scrollbars \
-    --screenshot="$PWD/docs/popup-$theme.png" --window-size=330,680 \
+    --screenshot="$PWD/docs/popup-$theme.png" --window-size=330,1100 \
     "file://$WORK/popup-$theme.html" >/dev/null 2>&1
 done
 

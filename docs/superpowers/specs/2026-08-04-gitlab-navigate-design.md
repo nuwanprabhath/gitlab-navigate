@@ -17,8 +17,14 @@ In scope: popup with grouped MR and ticket shortcuts plus reference inputs,
 configurable base repo URL / default MR target branch / GitLab username,
 recent-navigation list, keyboard shortcut. Chrome and Firefox from one manifest.
 
-Out of scope: GitLab API access, authentication, autocomplete, multiple saved repos,
-context-menu integration, Safari builds.
+Out of scope: autocomplete, multiple saved repos, context-menu integration, Safari
+builds, storing any GitLab credential.
+
+GitLab API access was originally out of scope and stayed that way for fifteen releases.
+Pinned pipelines needs it — status, branch and duration cannot be derived from a URL —
+so it is now in scope for that one feature, under the constraints in
+[Pinned pipelines](#pinned-pipelines) below: read-only, session-cookie authenticated,
+and behind an optional permission.
 
 ## Architecture
 
@@ -72,7 +78,9 @@ Fixed-width popup (~320px). Top to bottom:
 4. "Swap source/target branches" button, immediately beneath Create MR so both
    branch-direction controls sit together (hidden unless the active tab qualifies, see
    Data Flow).
-5. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
+5. "Pin this pipeline" button (hidden unless the active tab is a pipeline page that
+   is not already pinned), then the "Pinned pipelines" list.
+6. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
    value, click to reopen) and a 🗑 delete button that's invisible until the row is
    hovered or focused. Hidden when history is empty. The nav button is a two-column
    grid with a fixed 62px badge track, so values line up regardless of badge width
@@ -97,6 +105,11 @@ authoredTicketsUrl(base, username) -> string     // work items username opened
 runningPipelinesUrl(base) -> string              // all running pipelines
 myPipelinesUrl(base, username) -> string         // running pipelines username triggered
 authoredPipelinesUrl(base, username) -> string   // all pipelines username triggered
+parsePipelineUrl(url) -> {base, id} | null       // is this a pinnable pipeline page?
+pipelineApiUrl(base, id) -> string               // REST endpoint for one pipeline
+originPattern(base) -> string                    // host pattern for permissions.request
+formatDuration(seconds) -> string | null         // "45s", "4m 12s", "1h 3m"
+pipelineElapsedSeconds(pipeline, now) -> number | null
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
@@ -226,6 +239,7 @@ across machines; history lives in `local` because it is machine-specific noise.
   "version": "0.14.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
+  "optional_host_permissions": ["*://*/*"],
   "action": { "default_popup": "popup.html" },
   "commands": {
     "_execute_action": {
@@ -242,6 +256,37 @@ and rewrites the active tab's URL via `chrome.tabs.query`/`chrome.tabs.update`, 
 `activeTab` covers because opening the popup is itself the qualifying user gesture —
 no host permission, no broad "read/change data on all sites" warning, and no content
 script to keep in sync with GitLab's markup.
+
+### Pinned pipelines
+
+The only feature that reads from the GitLab API. Three constraints shape it:
+
+**Authentication is the session cookie, not a token.** GitLab's REST API accepts the
+`_gitlab_session` cookie the browser already holds ("The API uses this cookie for
+authentication if it's present" — REST authentication docs). So `fetch(...,
+{credentials: 'include'})` is authenticated as the signed-in user, and the extension
+never asks for, handles, or stores a credential. A token field would have been a
+liability for a tool this small.
+
+**The host permission is optional and requested at runtime.** `optional_host_permissions`
+is declared as `*://*/*`, but nothing is granted at install; `chrome.permissions.request`
+asks for `originPattern(base)` — one origin — the first time the user pins. This keeps
+the install-time permission profile unchanged for everyone who never pins. The request
+must be the first `await` in the click handler or the user gesture is lost.
+
+**Refusal is not failure.** If the permission is denied or the fetch fails, the pin is
+still recorded from the URL alone and still navigates; only status, branch and duration
+are missing. `refreshPinnedStatuses` renders cached values first and replaces them when
+`Promise.allSettled` resolves, so a popup opened offline shows the last known state
+rather than blanking.
+
+`pipelineElapsedSeconds` prefers a finished pipeline's reported `duration` over the wall
+clock; without that an old pinned pipeline would appear to still be counting up. The
+1s tick that animates running pipelines is installed only when at least one unfinished
+pipeline is pinned.
+
+Storage is `chrome.storage.local`, capped at 10, keyed by `base` + `id` — pinned
+pipelines are transient work state, like history, not settings.
 
 ## Data Flow
 
@@ -275,6 +320,11 @@ removeHistory(entry.url))` — remove it from storage and re-render from the
 returned array, without closing the popup or navigating. The delete button is a
 sibling of the nav button, not nested inside it, so the click can't also trigger
 navigation.
+
+**On open, for pinned pipelines:** render from `chrome.storage.local` immediately, then
+refresh over the network if the host permission is already granted. Clicking a row opens
+the pipeline; the ✕ that appears on hover unpins it and re-evaluates whether the Pin
+button should reappear.
 
 **On open, independently of the above:** query the active tab's URL and try
 `swapMrBranches(tab.url)`. If it succeeds, show the "Swap source/target branches"
@@ -329,6 +379,12 @@ exception message.
 - `assignedTicketsUrl` / `inProgressTicketsUrl` / `authoredTicketsUrl`: build the three
   work-item lists, assert the exact URLs GitLab itself produces (including `%20` rather
   than `+` in the status), and reject a missing base URL or username
+- `parsePipelineUrl`: accepts a single-pipeline page, rejects the pipeline *list* page,
+  job pages and non-URLs, so it doubles as the "is this pinnable?" test
+- `pipelineApiUrl`: URL-encodes the project path, including nested subgroups
+- `formatDuration` / `pipelineElapsedSeconds`: the unit boundaries, a finished
+  pipeline preferring its reported duration over the wall clock, and a negative clock
+  skew clamping to zero rather than rendering "-5s"
 - `runningPipelinesUrl` / `myPipelinesUrl` / `authoredPipelinesUrl`: build the three
   pipeline lists; the first rejects only a missing base URL, the other two a missing
   base URL or username. Authored is asserted to carry no `status` param.

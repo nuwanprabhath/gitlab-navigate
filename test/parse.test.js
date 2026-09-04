@@ -5,12 +5,17 @@ import {
   authoredPipelinesUrl,
   authoredTicketsUrl,
   buildUrl,
+  formatDuration,
   inProgressTicketsUrl,
   mineMrUrl,
   myPipelinesUrl,
   normalizeBase,
-  runningPipelinesUrl,
+  originPattern,
+  parsePipelineUrl,
+  pipelineApiUrl,
+  pipelineElapsedSeconds,
   reviewerMrUrl,
+  runningPipelinesUrl,
   swapMrBranches,
 } from '../lib/parse.js';
 
@@ -450,5 +455,128 @@ describe('authoredPipelinesUrl', () => {
 
   test('rejects a missing username', () => {
     expect(() => authoredPipelinesUrl(BASE, '')).toThrow(ParseError);
+  });
+});
+
+describe('parsePipelineUrl', () => {
+  test('pulls base and id out of a pipeline page URL', () => {
+    expect(parsePipelineUrl(`${BASE}/-/pipelines/2816150418`)).toEqual({
+      base: BASE,
+      id: '2816150418',
+    });
+  });
+
+  test('ignores a trailing slash and query string', () => {
+    expect(parsePipelineUrl(`${BASE}/-/pipelines/2816150418/?foo=1`)).toEqual({
+      base: BASE,
+      id: '2816150418',
+    });
+  });
+
+  test('works for a self-hosted instance', () => {
+    expect(parsePipelineUrl('https://gitlab.internal/team/repo/-/pipelines/7')).toEqual({
+      base: 'https://gitlab.internal/team/repo',
+      id: '7',
+    });
+  });
+
+  test('returns null for the pipeline list page', () => {
+    expect(parsePipelineUrl(`${BASE}/-/pipelines?status=running`)).toBeNull();
+  });
+
+  test('returns null for a job page', () => {
+    expect(parsePipelineUrl(`${BASE}/-/jobs/15853756077`)).toBeNull();
+  });
+
+  test('returns null for a non-URL', () => {
+    expect(parsePipelineUrl('chrome://extensions')).toBeNull();
+  });
+});
+
+describe('pipelineApiUrl', () => {
+  test('URL-encodes the project path', () => {
+    expect(pipelineApiUrl(BASE, '2816150418')).toBe(
+      'https://gitlab.com/api/v4/projects/ternandsparrow%2Fparatoo-fdcp/pipelines/2816150418',
+    );
+  });
+
+  test('handles a nested subgroup path', () => {
+    expect(pipelineApiUrl('https://gitlab.com/a/b/c', '7')).toBe(
+      'https://gitlab.com/api/v4/projects/a%2Fb%2Fc/pipelines/7',
+    );
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => pipelineApiUrl('', '7')).toThrow(ParseError);
+  });
+});
+
+describe('originPattern', () => {
+  test('builds a host permission pattern from the repo URL', () => {
+    expect(originPattern(BASE)).toBe('https://gitlab.com/*');
+  });
+
+  test('keeps the scheme of a self-hosted instance', () => {
+    expect(originPattern('http://gitlab.internal/team/repo')).toBe(
+      'http://gitlab.internal/*',
+    );
+  });
+});
+
+describe('formatDuration', () => {
+  test('seconds under a minute', () => {
+    expect(formatDuration(45)).toBe('45s');
+  });
+
+  test('minutes and seconds', () => {
+    expect(formatDuration(252)).toBe('4m 12s');
+  });
+
+  test('hours and minutes', () => {
+    expect(formatDuration(3780)).toBe('1h 3m');
+  });
+
+  test('rounds down to whole seconds', () => {
+    expect(formatDuration(9.8)).toBe('9s');
+  });
+
+  test('clamps a negative clock skew to zero', () => {
+    expect(formatDuration(-5)).toBe('0s');
+  });
+
+  test('returns null when there is nothing to show', () => {
+    expect(formatDuration(null)).toBeNull();
+  });
+});
+
+describe('pipelineElapsedSeconds', () => {
+  const now = Date.parse('2026-09-03T10:05:00Z');
+
+  test('running: counts from started_at up to now', () => {
+    const p = { status: 'running', started_at: '2026-09-03T10:00:48Z' };
+    expect(pipelineElapsedSeconds(p, now)).toBe(252);
+  });
+
+  test('running but not yet started: counts from created_at', () => {
+    const p = { status: 'pending', created_at: '2026-09-03T10:04:00Z' };
+    expect(pipelineElapsedSeconds(p, now)).toBe(60);
+  });
+
+  test('finished: uses the reported duration, not the wall clock', () => {
+    const p = { status: 'success', started_at: '2026-01-01T00:00:00Z', duration: 34 };
+    expect(pipelineElapsedSeconds(p, now)).toBe(34);
+  });
+
+  test('finished without a duration: falls back to finished minus started', () => {
+    const p = {
+      status: 'failed',
+      started_at: '2026-09-03T09:00:00Z',
+      finished_at: '2026-09-03T09:01:30Z',
+    };
+    expect(pipelineElapsedSeconds(p, now)).toBe(90);
+  });
+
+  test('returns null when nothing can be derived', () => {
+    expect(pipelineElapsedSeconds({ status: 'created' }, now)).toBeNull();
   });
 });
