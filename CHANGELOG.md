@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.1
+
+- The **History** box now pre-fills with your default MR target branch, same as the
+  Create MR **To** box, so checking commits on your usual branch needs no typing.
+  Still fully editable, and a settings save only refreshes it while it still holds the
+  old default — a branch typed by hand for one lookup is not overwritten.
+
 ## 0.16.0
 
 - Added **Pinned pipelines**, above Recent. Each row shows a coloured status glyph, the

@@ -56,6 +56,7 @@ const usernameSave = document.getElementById('username-save');
 const usernameError = document.getElementById('username-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
 const ticketInput = document.getElementById('ticket');
+const historyInput = document.getElementById('history');
 const mrFrom = document.getElementById('mr-from');
 const mrTo = document.getElementById('mr-to');
 const fromToSwap = document.getElementById('from-to-swap');
@@ -442,9 +443,12 @@ async function saveTargetBranch() {
   targetBranch = trimmed;
   await setTargetBranch(targetBranch);
 
-  // Refresh the To box only while it still holds the old default, so a target the
-  // user typed by hand for this one MR survives a settings save.
+  // Refresh the To/History boxes only while they still hold the old default, so a
+  // branch the user typed by hand for this one lookup survives a settings save.
   if (!mrTo.value.trim() || mrTo.value.trim() === previous) mrTo.value = targetBranch;
+  if (!historyInput.value.trim() || historyInput.value.trim() === previous) {
+    historyInput.value = targetBranch;
+  }
 }
 
 async function saveUsername() {
@@ -547,6 +551,7 @@ async function init() {
   targetBranch = await getTargetBranch();
   username = await getUsername();
   mrTo.value = targetBranch;
+  historyInput.value = targetBranch;
   renderHistory(await getHistory());
 
   pinnedEntries = await getPinned();

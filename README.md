@@ -125,6 +125,10 @@ laid out two per row, each with its name above the box and an example inside it:
 Pipeline and job ids are both bare numbers with no way to tell them apart from the id
 alone, so they get their own boxes rather than sharing one.
 
+History is pre-filled with your default MR target branch (the same one that seeds
+Create MR's **To** box), since that's the branch you check most often — still fully
+editable for a one-off.
+
 Input is forgiving everywhere: `#2795` and `!1122` work, commit hashes may be 7–40 hex
 characters in any case, branch names may carry a leading `origin/` or `refs/heads/`,
 and pasting a full GitLab URL into any box just opens that URL.

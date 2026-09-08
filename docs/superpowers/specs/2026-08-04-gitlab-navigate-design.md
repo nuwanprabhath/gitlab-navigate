@@ -195,6 +195,12 @@ than the only source of the target: it still changes far less often than the sou
 branch, so it stays a setting, but it seeds an editable field instead of being applied
 invisibly. That is what makes a reverse MR possible without touching settings.
 
+The History box under **Go to** is seeded from the same `targetBranch` default, since
+the branch most worth checking commits on is usually the one MRs target. Both the To
+box and History refresh from a settings save only while they still hold the *previous*
+default (`saveTargetBranch` compares against `previous` before overwriting), so a
+branch typed by hand for one lookup or one MR is never silently replaced.
+
 Anything that fails its pattern throws a `ParseError` carrying a short human message.
 
 `swapMrBranches(urlString)` is the other pure export. Given a

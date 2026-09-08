@@ -54,6 +54,11 @@ html = (html
 html = html.replace('<input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" />',
                     '<input id="mr-to" type="text" spellcheck="false" placeholder="dev/1.0.11" value="dev/1.0.11" />')
 
+# History now defaults to the same target branch as the To box above, filled at
+# runtime rather than left as a placeholder.
+html = html.replace('<input id="history" data-type="history" type="text" spellcheck="false" placeholder="dev/1.0.11" />',
+                    '<input id="history" data-type="history" type="text" spellcheck="false" placeholder="dev/1.0.11" value="dev/1.0.11" />')
+
 # Pinned pipelines are fetched from the GitLab API at runtime, so they get the same
 # static treatment as Recent. Glyphs and statuses match STATUS_GLYPHS in popup.js.
 pins = [
