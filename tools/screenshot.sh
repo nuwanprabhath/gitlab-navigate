@@ -68,6 +68,7 @@ pins = [
 ]
 pin_items = '\n'.join(
     f'<li class="pin-item">'
+    f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
     f'<button type="button" class="pin-nav">'
     f'<span class="pin-status" data-status="{status}">{glyph}</span>'
     f'<span class="pin-main"><span class="pin-id">#{pid}</span>'

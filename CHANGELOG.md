@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.0
+
+- Pinned pipelines can now be reordered by drag-and-drop. Each row has a small grip
+  handle on the left; drag it up or down and drop to move that pipeline, with a line
+  showing where it will land.
+- Order is now explicit rather than "most recently pinned first": `reorderPinned` in
+  `lib/storage.js` splices the pipeline out of the pinned array and reinserts it at the
+  drop position, so it's stable across popup opens.
+- Only the grip handle is draggable, not the whole row, so dragging never conflicts
+  with clicking a row to open it or hovering to unpin it.
+
 ## 0.16.1
 
 - The **History** box now pre-fills with your default MR target branch, same as the

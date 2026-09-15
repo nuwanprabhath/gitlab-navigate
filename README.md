@@ -143,6 +143,10 @@ row to open the pipeline; hover it to reveal an unpin button.
 To pin: open a pipeline page (`.../-/pipelines/2816150418`) and the popup shows **Pin
 this pipeline**.
 
+Drag the grip handle (⠿) on the left of a row to reorder it — a line shows where it will
+land. Only the handle is draggable, so dragging never conflicts with clicking the row to
+open it. Order persists across popup opens.
+
 Status is refreshed each time the popup opens. Cached values appear instantly and are
 replaced when the refresh lands, so the list still reads sensibly offline.
 

@@ -26,6 +26,7 @@ import {
   pinPipeline,
   pushHistory,
   removeHistory,
+  reorderPinned,
   unpinPipeline,
   updatePinned,
   setBase,
@@ -85,6 +86,7 @@ let swappedUrl = '';
 let pinnablePipeline = null;
 let pinnedEntries = [];
 let tickTimer = null;
+let draggedIndex = null;
 
 function showError(element, message) {
   element.textContent = message;
@@ -201,11 +203,17 @@ function pipelineWebUrl(entry) {
   return entry.webUrl || `${entry.base}/-/pipelines/${entry.id}`;
 }
 
+function clearDragOverMarkers() {
+  for (const li of pinnedList.querySelectorAll('.pin-item')) {
+    li.classList.remove('drag-over-top', 'drag-over-bottom');
+  }
+}
+
 function renderPinned() {
   pinnedList.replaceChildren();
   pinned.hidden = pinnedEntries.length === 0;
 
-  for (const entry of pinnedEntries) {
+  pinnedEntries.forEach((entry, index) => {
     const status = document.createElement('span');
     status.className = 'pin-status';
     status.dataset.status = entry.status ?? 'unknown';
@@ -249,11 +257,61 @@ function renderPinned() {
       await refreshPinButton();
     });
 
+    // A dedicated grab handle, rather than the whole row, so dragging never
+    // fights with clicking nav or remove.
+    const handle = document.createElement('span');
+    handle.className = 'pin-handle';
+    handle.draggable = true;
+    handle.title = 'Drag to reorder';
+    handle.setAttribute('aria-label', 'Drag to reorder');
+
     const item = document.createElement('li');
     item.className = 'pin-item';
-    item.append(nav, remove);
+    item.append(handle, nav, remove);
     pinnedList.append(item);
-  }
+
+    handle.addEventListener('dragstart', (event) => {
+      draggedIndex = index;
+      item.classList.add('dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      // Firefox requires data to be set for the drag to actually start.
+      event.dataTransfer.setData('text/plain', String(index));
+    });
+
+    handle.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      draggedIndex = null;
+      clearDragOverMarkers();
+    });
+
+    item.addEventListener('dragover', (event) => {
+      if (draggedIndex === null) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+
+      const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
+      item.classList.toggle('drag-over-bottom', isAfter);
+      item.classList.toggle('drag-over-top', !isAfter);
+    });
+
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    item.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      clearDragOverMarkers();
+      if (draggedIndex === null || draggedIndex === index) return;
+
+      const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
+      let targetIndex = isAfter ? index + 1 : index;
+      if (draggedIndex < targetIndex) targetIndex -= 1;
+
+      const moved = pinnedEntries[draggedIndex];
+      pinnedEntries = await reorderPinned(moved.base, moved.id, targetIndex);
+      renderPinned();
+    });
+  });
 
   scheduleTick();
 }

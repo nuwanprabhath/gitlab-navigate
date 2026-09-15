@@ -242,7 +242,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.14.0",
+  "version": "0.17.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "optional_host_permissions": ["*://*/*"],
@@ -293,6 +293,18 @@ pipeline is pinned.
 
 Storage is `chrome.storage.local`, capped at 10, keyed by `base` + `id` — pinned
 pipelines are transient work state, like history, not settings.
+
+**Order is explicit, not derived.** Pinned entries are stored as an array and rendered
+in array order; `reorderPinned(base, id, targetIndex)` in `lib/storage.js` splices the
+matching entry out and reinserts it at `targetIndex`, then re-saves the whole array —
+there is no separate `order` field to keep in sync. Dragging is implemented with the
+native HTML5 drag events (`dragstart`/`dragover`/`dragleave`/`drop`) on a dedicated
+`.pin-handle` grip rather than the row itself, so a drag gesture never competes with
+clicking the row to navigate or hovering it to reveal the unpin button. `dragover`
+compares the pointer's Y position against the row's vertical midpoint to decide whether
+the drop lands above or below that row, shown live via `.drag-over-top` /
+`.drag-over-bottom`; `drop` adjusts for the array shifting by one slot when the dragged
+item's original index is before the target.
 
 ## Data Flow
 
