@@ -327,6 +327,24 @@ input[type="text"]:disabled {
   color: var(--error);
 }
 
+.pin-edit {
+  display: grid;
+  grid-template-columns: 15px 1fr;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 8px 4px;
+}
+
+/* Pull the box left by its own padding + border so typed text lines up with the
+   headlines of the rows around it. */
+.pin-edit input[type="text"] {
+  width: calc(100% + 7px);
+  margin-left: -7px;
+  padding: 1px 6px;
+}
+
 /* A 2x3 dot grid drawn with box-shadow, so the grip icon renders identically
    everywhere instead of depending on emoji/Braille glyph support. */
 .pin-handle {

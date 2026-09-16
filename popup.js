@@ -8,7 +8,9 @@ import {
   mineMrUrl,
   myPipelinesUrl,
   formatDuration,
+  NOTE_MAX_LENGTH,
   normalizeBase,
+  normalizeNote,
   originPattern,
   parsePipelineUrl,
   pipelineApiUrl,
@@ -27,6 +29,7 @@ import {
   pushHistory,
   removeHistory,
   reorderPinned,
+  setPinnedNote,
   unpinPipeline,
   updatePinned,
   setBase,
@@ -87,6 +90,11 @@ let pinnablePipeline = null;
 let pinnedEntries = [];
 let tickTimer = null;
 let draggedIndex = null;
+// The row being edited, kept outside the DOM so list rebuilds cannot lose it:
+// { base, id, draft, selectionStart, selectionEnd, cancelled }
+let editing = null;
+// True while renderPinned rebuilds the list; blurs it causes are not saves.
+let rendering = false;
 
 function showError(element, message) {
   element.textContent = message;
@@ -265,6 +273,14 @@ function buildNavButton(entry) {
 }
 
 function buildActions(entry) {
+  const edit = document.createElement('button');
+  edit.type = 'button';
+  edit.className = 'pin-action pin-note-edit';
+  edit.title = entry.note ? 'Edit note' : 'Add note';
+  edit.setAttribute('aria-label', edit.title);
+  edit.textContent = '\u270e';
+  edit.addEventListener('click', () => startEditing(entry));
+
   const remove = document.createElement('button');
   remove.type = 'button';
   remove.className = 'pin-action pin-remove';
@@ -279,22 +295,67 @@ function buildActions(entry) {
 
   const actions = document.createElement('span');
   actions.className = 'pin-actions';
-  actions.append(remove);
+  actions.append(edit, remove);
   return actions;
 }
 
+function rememberDraft(input) {
+  if (!editing) return;
+  editing.draft = input.value;
+  editing.selectionStart = input.selectionStart;
+  editing.selectionEnd = input.selectionEnd;
+}
+
+function buildEditor(entry) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'pin-note-input';
+  input.maxLength = NOTE_MAX_LENGTH;
+  input.placeholder = "What's this pipeline for?";
+  input.setAttribute('aria-label', `Note for pipeline #${entry.id}`);
+  input.value = editing.draft;
+
+  for (const type of ['input', 'select', 'keyup', 'click']) {
+    input.addEventListener(type, () => rememberDraft(input));
+  }
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      commitEdit();
+    } else if (event.key === 'Escape') {
+      // Flag first: if the browser closes the popup on Esc, the blur that
+      // follows must not save.
+      editing.cancelled = true;
+      event.preventDefault();
+      cancelEdit();
+    }
+  });
+  input.addEventListener('blur', () => {
+    if (rendering || !input.isConnected || !editing || editing.cancelled) return;
+    commitEdit();
+  });
+
+  const editor = document.createElement('div');
+  editor.className = 'pin-edit';
+  editor.append(statusGlyph(entry), pinMain(input, pinSubline(idAndRef(entry))));
+  return editor;
+}
+
 function buildPinnedRow(entry, index) {
+  const isEditing = editing?.base === entry.base && editing?.id === entry.id;
+
   // A dedicated grab handle, rather than the whole row, so dragging never
   // fights with clicking nav or the hover actions.
   const handle = document.createElement('span');
   handle.className = 'pin-handle';
-  handle.draggable = true;
+  handle.draggable = !isEditing;
   handle.title = 'Drag to reorder';
   handle.setAttribute('aria-label', 'Drag to reorder');
 
   const item = document.createElement('li');
   item.className = 'pin-item';
-  item.append(handle, buildNavButton(entry), buildActions(entry));
+  if (isEditing) item.append(handle, buildEditor(entry));
+  else item.append(handle, buildNavButton(entry), buildActions(entry));
 
   handle.addEventListener('dragstart', (event) => {
     draggedIndex = index;
@@ -342,9 +403,50 @@ function buildPinnedRow(entry, index) {
 }
 
 function renderPinned() {
-  pinnedList.replaceChildren(...pinnedEntries.map(buildPinnedRow));
+  rendering = true;
+  try {
+    pinnedList.replaceChildren(...pinnedEntries.map(buildPinnedRow));
+  } finally {
+    rendering = false;
+  }
   pinned.hidden = pinnedEntries.length === 0;
+
+  const input = pinnedList.querySelector('.pin-note-input');
+  if (input) {
+    input.focus();
+    input.setSelectionRange(editing.selectionStart, editing.selectionEnd);
+  }
+
   scheduleTick();
+}
+
+function startEditing(entry) {
+  if (editing) commitEdit();
+  const note = entry.note ?? '';
+  editing = {
+    base: entry.base,
+    id: entry.id,
+    draft: note,
+    selectionStart: 0,
+    selectionEnd: note.length,
+    cancelled: false,
+  };
+  renderPinned();
+}
+
+// State is cleared before the write, but the list is only rebuilt after it, so a
+// click that caused this blur (e.g. ✎ on another row) still lands on its button.
+async function commitEdit() {
+  if (!editing) return;
+  const { base, id, draft } = editing;
+  editing = null;
+  pinnedEntries = await setPinnedNote(base, id, normalizeNote(draft));
+  renderPinned();
+}
+
+function cancelEdit() {
+  editing = null;
+  renderPinned();
 }
 
 // Only running pipelines have a duration that moves, so the timer exists only for them.
@@ -431,7 +533,7 @@ async function doPinPipeline() {
   }
 
   pinnedEntries = await pinPipeline(entry);
-  renderPinned();
+  startEditing(pinnedEntries.find((p) => p.base === entry.base && p.id === entry.id));
   await refreshPinButton();
 }
 
