@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.0
+
+- Pinned pipelines can carry a short **note** (up to 80 characters) so a long list
+  reads at a glance. A noted row shows the note as its headline, with the pipeline
+  number and branch on the small line beneath (`#2816150418 · dev/1.0.11`); rows
+  without a note look as before.
+- Hover a row for **✎** to add or edit its note. Enter or clicking away saves, Esc
+  cancels, and saving an empty note removes it.
+- Pinning a pipeline opens its note box straight away; press Esc or click away to
+  skip.
+- ✎ and ✕ now appear over the row's duration on hover instead of reserving their own
+  column, so notes get the full row width when you're just reading the list.
+- A status refresh that lands while you type keeps your draft and cursor, and Esc
+  never saves — even if the browser closes the popup on Esc.
+
 ## 0.17.0
 
 - Pinned pipelines can now be reordered by drag-and-drop. Each row has a small grip

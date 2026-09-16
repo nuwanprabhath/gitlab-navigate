@@ -62,22 +62,35 @@ html = html.replace('<input id="history" data-type="history" type="text" spellch
 # Pinned pipelines are fetched from the GitLab API at runtime, so they get the same
 # static treatment as Recent. Glyphs and statuses match STATUS_GLYPHS in popup.js.
 pins = [
-    ('running', '&#x25CF;', '2816150418', 'dev/1.0.11', '4m 12s'),
-    ('success', '&#x2713;', '2816150001', 'fix-plot-layout-pro-expansion-issue', '7m 3s'),
-    ('failed', '&#x2715;', '2815998877', '2846-regression-fix', '2m 41s'),
+    ('running', '&#x25CF;', '2816150418', 'dev/1.0.11', '4m 12s',
+     'Hotfix: login redirect loop'),
+    ('success', '&#x2713;', '2816150001', 'fix-plot-layout-pro-expansion-issue', '7m 3s',
+     'Retry after flaky e2e'),
+    ('failed', '&#x2715;', '2815998877', '2846-regression-fix', '2m 41s', None),
 ]
-pin_items = '\n'.join(
-    f'<li class="pin-item">'
-    f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
-    f'<button type="button" class="pin-nav">'
-    f'<span class="pin-status" data-status="{status}">{glyph}</span>'
-    f'<span class="pin-main"><span class="pin-id">#{pid}</span>'
-    f'<span class="pin-ref">{ref}</span></span>'
-    f'<span class="pin-duration">{duration}</span>'
-    f'</button>'
-    f'<button type="button" class="pin-remove" aria-label="Unpin this pipeline">&#x2715;</button>'
-    f'</li>'
-    for status, glyph, pid, ref, duration in pins)
+
+
+def pin_item(status, glyph, pid, ref, duration, note):
+    # Mirrors buildNavButton()/buildActions() in popup.js.
+    headline = (f'<span class="pin-note">{note}</span>' if note
+                else f'<span class="pin-id">#{pid}</span>')
+    subline = f'#{pid} &#xB7; {ref}' if note else ref
+    return (
+        f'<li class="pin-item">'
+        f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
+        f'<button type="button" class="pin-nav">'
+        f'<span class="pin-status" data-status="{status}">{glyph}</span>'
+        f'<span class="pin-main">{headline}<span class="pin-ref">{subline}</span></span>'
+        f'<span class="pin-duration">{duration}</span>'
+        f'</button>'
+        f'<span class="pin-actions">'
+        f'<button type="button" class="pin-action pin-note-edit" aria-label="Edit note">&#x270E;</button>'
+        f'<button type="button" class="pin-action pin-remove" aria-label="Unpin this pipeline">&#x2715;</button>'
+        f'</span>'
+        f'</li>')
+
+
+pin_items = '\n'.join(pin_item(*pin) for pin in pins)
 html = (html
         .replace('<section id="pinned" class="recent" hidden>', '<section id="pinned" class="recent">')
         .replace('<ul id="pinned-list"></ul>', f'<ul id="pinned-list">{pin_items}</ul>'))

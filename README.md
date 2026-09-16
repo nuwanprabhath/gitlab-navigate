@@ -138,7 +138,7 @@ and pasting a full GitLab URL into any box just opens that URL.
 Start several pipelines, pin them, and check them all from the popup instead of loading
 the pipelines page each time. Each row shows a status glyph, the pipeline number, its
 branch, and elapsed time — running pipelines count up while the popup is open. Click a
-row to open the pipeline; hover it to reveal an unpin button.
+row to open the pipeline; hover it to reveal **✎** (note) and **✕** (unpin).
 
 To pin: open a pipeline page (`.../-/pipelines/2816150418`) and the popup shows **Pin
 this pipeline**.
@@ -146,6 +146,13 @@ this pipeline**.
 Drag the grip handle (⠿) on the left of a row to reorder it — a line shows where it will
 land. Only the handle is draggable, so dragging never conflicts with clicking the row to
 open it. Order persists across popup opens.
+
+**Notes.** Give a pipeline a short note (up to 80 characters) and it becomes the row's
+headline, with the pipeline number and branch on the line below — handy once several
+pipelines are pinned. Pinning opens the note box straight away (Esc or click away to
+skip); later, hover the row and click ✎. Enter or clicking away saves, Esc cancels, and
+saving an empty note removes it. Notes are stored with the pin on this machine and go
+away when you unpin.
 
 Status is refreshed each time the popup opens. Cached values appear instantly and are
 replaced when the refresh lands, so the list still reads sensibly offline.

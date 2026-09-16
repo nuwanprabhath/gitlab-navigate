@@ -110,6 +110,7 @@ pipelineApiUrl(base, id) -> string               // REST endpoint for one pipeli
 originPattern(base) -> string                    // host pattern for permissions.request
 formatDuration(seconds) -> string | null         // "45s", "4m 12s", "1h 3m"
 pipelineElapsedSeconds(pipeline, now) -> number | null
+normalizeNote(raw) -> string                     // canonical note; '' = no note
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
@@ -242,7 +243,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab"],
   "optional_host_permissions": ["*://*/*"],
@@ -305,6 +306,15 @@ compares the pointer's Y position against the row's vertical midpoint to decide 
 the drop lands above or below that row, shown live via `.drag-over-top` /
 `.drag-over-bottom`; `drop` adjusts for the array shifting by one slot when the dragged
 item's original index is before the target.
+
+**Notes.** Each pinned entry may carry a `note` (≤ 80 characters, normalized by
+`normalizeNote`, written by `setPinnedNote`, which deletes the field for `''`). A noted
+row uses the note as its headline and `#id · branch` as its second line. ✎ and ✕ live
+in a `.pin-actions` overlay above the duration so they reserve no width at rest. Edit
+mode swaps the row's nav button for an input (an input cannot sit inside a button);
+its state is held in `editing` outside the DOM so `renderPinned` rebuilds — notably the
+status refresh — restore the draft and caret. Full design:
+`2026-09-16-pinned-pipeline-notes-design.md`.
 
 ## Data Flow
 
