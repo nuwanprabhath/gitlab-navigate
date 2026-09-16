@@ -10,6 +10,7 @@ import {
   mineMrUrl,
   myPipelinesUrl,
   normalizeBase,
+  normalizeNote,
   originPattern,
   parsePipelineUrl,
   pipelineApiUrl,
@@ -578,5 +579,35 @@ describe('pipelineElapsedSeconds', () => {
 
   test('returns null when nothing can be derived', () => {
     expect(pipelineElapsedSeconds({ status: 'created' }, now)).toBeNull();
+  });
+});
+
+describe('normalizeNote', () => {
+  test('trims surrounding whitespace', () => {
+    expect(normalizeNote('  Hotfix  ')).toBe('Hotfix');
+  });
+
+  test('collapses internal whitespace, tabs and newlines to single spaces', () => {
+    expect(normalizeNote('Hotfix:\t login\n\nredirect   loop')).toBe(
+      'Hotfix: login redirect loop',
+    );
+  });
+
+  test('returns an empty string for whitespace-only input', () => {
+    expect(normalizeNote(' \t\n ')).toBe('');
+  });
+
+  test('caps the note at 80 characters', () => {
+    expect(normalizeNote('a'.repeat(100))).toBe('a'.repeat(80));
+  });
+
+  test('does not leave a trailing space where the cap falls', () => {
+    expect(normalizeNote(`${'a'.repeat(79)} bcd`)).toBe('a'.repeat(79));
+  });
+
+  test('returns an empty string for non-string input', () => {
+    expect(normalizeNote(undefined)).toBe('');
+    expect(normalizeNote(null)).toBe('');
+    expect(normalizeNote(42)).toBe('');
   });
 });
