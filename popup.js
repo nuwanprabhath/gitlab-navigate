@@ -209,110 +209,141 @@ function clearDragOverMarkers() {
   }
 }
 
-function renderPinned() {
-  pinnedList.replaceChildren();
-  pinned.hidden = pinnedEntries.length === 0;
+function statusGlyph(entry) {
+  const status = document.createElement('span');
+  status.className = 'pin-status';
+  status.dataset.status = entry.status ?? 'unknown';
+  status.textContent = STATUS_GLYPHS[entry.status] ?? '\u25CF';
+  return status;
+}
 
-  pinnedEntries.forEach((entry, index) => {
-    const status = document.createElement('span');
-    status.className = 'pin-status';
-    status.dataset.status = entry.status ?? 'unknown';
-    status.textContent = STATUS_GLYPHS[entry.status] ?? '\u25CF';
+function pinMain(headline, subline) {
+  const main = document.createElement('span');
+  main.className = 'pin-main';
+  main.append(headline, subline);
+  return main;
+}
 
-    const id = document.createElement('span');
-    id.className = 'pin-id';
-    id.textContent = `#${entry.id}`;
+function pinSubline(text) {
+  const sub = document.createElement('span');
+  sub.className = 'pin-ref';
+  sub.textContent = text;
+  return sub;
+}
 
-    const ref = document.createElement('span');
-    ref.className = 'pin-ref';
-    ref.textContent = entry.ref ?? '';
+function idAndRef(entry) {
+  return [`#${entry.id}`, entry.ref].filter(Boolean).join(' \u00B7 ');
+}
 
-    const main = document.createElement('span');
-    main.className = 'pin-main';
-    main.append(id, ref);
+function buildNavButton(entry) {
+  const noted = Boolean(entry.note);
 
-    const duration = document.createElement('span');
-    duration.className = 'pin-duration';
-    duration.dataset.pipelineId = entry.id;
-    duration.textContent = formatDuration(pipelineElapsedSeconds(entry.raw ?? {})) ?? '';
+  const headline = document.createElement('span');
+  headline.className = noted ? 'pin-note' : 'pin-id';
+  headline.textContent = noted ? entry.note : `#${entry.id}`;
 
-    const nav = document.createElement('button');
-    nav.type = 'button';
-    nav.className = 'pin-nav';
-    nav.title = entry.status
-      ? `${entry.status}${entry.ref ? ` on ${entry.ref}` : ''}`
-      : pipelineWebUrl(entry);
-    nav.append(status, main, duration);
-    nav.addEventListener('click', () => navigate(pipelineWebUrl(entry)));
+  const duration = document.createElement('span');
+  duration.className = 'pin-duration';
+  duration.dataset.pipelineId = entry.id;
+  duration.textContent = formatDuration(pipelineElapsedSeconds(entry.raw ?? {})) ?? '';
 
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'pin-remove';
-    remove.title = 'Unpin';
-    remove.setAttribute('aria-label', 'Unpin this pipeline');
-    remove.textContent = '\u2715';
-    remove.addEventListener('click', async () => {
-      pinnedEntries = await unpinPipeline(entry.base, entry.id);
-      renderPinned();
-      await refreshPinButton();
-    });
+  const statusLine = entry.status
+    ? `${entry.status}${entry.ref ? ` on ${entry.ref}` : ''}`
+    : pipelineWebUrl(entry);
 
-    // A dedicated grab handle, rather than the whole row, so dragging never
-    // fights with clicking nav or remove.
-    const handle = document.createElement('span');
-    handle.className = 'pin-handle';
-    handle.draggable = true;
-    handle.title = 'Drag to reorder';
-    handle.setAttribute('aria-label', 'Drag to reorder');
+  const nav = document.createElement('button');
+  nav.type = 'button';
+  nav.className = 'pin-nav';
+  nav.title = noted ? `${entry.note}\n${statusLine}` : statusLine;
+  nav.append(
+    statusGlyph(entry),
+    pinMain(headline, pinSubline(noted ? idAndRef(entry) : entry.ref ?? '')),
+    duration,
+  );
+  nav.addEventListener('click', () => navigate(pipelineWebUrl(entry)));
+  return nav;
+}
 
-    const item = document.createElement('li');
-    item.className = 'pin-item';
-    item.append(handle, nav, remove);
-    pinnedList.append(item);
-
-    handle.addEventListener('dragstart', (event) => {
-      draggedIndex = index;
-      item.classList.add('dragging');
-      event.dataTransfer.effectAllowed = 'move';
-      // Firefox requires data to be set for the drag to actually start.
-      event.dataTransfer.setData('text/plain', String(index));
-    });
-
-    handle.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      draggedIndex = null;
-      clearDragOverMarkers();
-    });
-
-    item.addEventListener('dragover', (event) => {
-      if (draggedIndex === null) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'move';
-
-      const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
-      item.classList.toggle('drag-over-bottom', isAfter);
-      item.classList.toggle('drag-over-top', !isAfter);
-    });
-
-    item.addEventListener('dragleave', () => {
-      item.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-
-    item.addEventListener('drop', async (event) => {
-      event.preventDefault();
-      clearDragOverMarkers();
-      if (draggedIndex === null || draggedIndex === index) return;
-
-      const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
-      let targetIndex = isAfter ? index + 1 : index;
-      if (draggedIndex < targetIndex) targetIndex -= 1;
-
-      const moved = pinnedEntries[draggedIndex];
-      pinnedEntries = await reorderPinned(moved.base, moved.id, targetIndex);
-      renderPinned();
-    });
+function buildActions(entry) {
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'pin-action pin-remove';
+  remove.title = 'Unpin';
+  remove.setAttribute('aria-label', 'Unpin this pipeline');
+  remove.textContent = '\u2715';
+  remove.addEventListener('click', async () => {
+    pinnedEntries = await unpinPipeline(entry.base, entry.id);
+    renderPinned();
+    await refreshPinButton();
   });
 
+  const actions = document.createElement('span');
+  actions.className = 'pin-actions';
+  actions.append(remove);
+  return actions;
+}
+
+function buildPinnedRow(entry, index) {
+  // A dedicated grab handle, rather than the whole row, so dragging never
+  // fights with clicking nav or the hover actions.
+  const handle = document.createElement('span');
+  handle.className = 'pin-handle';
+  handle.draggable = true;
+  handle.title = 'Drag to reorder';
+  handle.setAttribute('aria-label', 'Drag to reorder');
+
+  const item = document.createElement('li');
+  item.className = 'pin-item';
+  item.append(handle, buildNavButton(entry), buildActions(entry));
+
+  handle.addEventListener('dragstart', (event) => {
+    draggedIndex = index;
+    item.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    // Firefox requires data to be set for the drag to actually start.
+    event.dataTransfer.setData('text/plain', String(index));
+  });
+
+  handle.addEventListener('dragend', () => {
+    item.classList.remove('dragging');
+    draggedIndex = null;
+    clearDragOverMarkers();
+  });
+
+  item.addEventListener('dragover', (event) => {
+    if (draggedIndex === null) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+
+    const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
+    item.classList.toggle('drag-over-bottom', isAfter);
+    item.classList.toggle('drag-over-top', !isAfter);
+  });
+
+  item.addEventListener('dragleave', () => {
+    item.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+
+  item.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    clearDragOverMarkers();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
+    let targetIndex = isAfter ? index + 1 : index;
+    if (draggedIndex < targetIndex) targetIndex -= 1;
+
+    const moved = pinnedEntries[draggedIndex];
+    pinnedEntries = await reorderPinned(moved.base, moved.id, targetIndex);
+    renderPinned();
+  });
+
+  return item;
+}
+
+function renderPinned() {
+  pinnedList.replaceChildren(...pinnedEntries.map(buildPinnedRow));
+  pinned.hidden = pinnedEntries.length === 0;
   scheduleTick();
 }
 

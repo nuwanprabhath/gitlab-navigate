@@ -210,6 +210,7 @@ input[type="text"]:disabled {
 }
 
 .pin-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -244,6 +245,12 @@ input[type="text"]:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.pin-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pin-ref,
 .pin-duration {
   font-size: 10.5px;
@@ -256,8 +263,11 @@ input[type="text"]:disabled {
   white-space: nowrap;
 }
 
+/* The min-width reserves room for the hover actions that sit on top of it. */
 .pin-duration {
   flex: none;
+  min-width: 40px;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -275,26 +285,46 @@ input[type="text"]:disabled {
 .pin-status[data-status="pending"],
 .pin-status[data-status="waiting_for_resource"] { color: #c17d10; }
 
-.pin-remove {
-  flex: none;
-  padding: 4px 6px;
+/* Hover actions sit over the duration instead of reserving their own column,
+   so a note keeps the full row width at rest. */
+.pin-actions {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: flex;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pin-item:hover .pin-actions,
+.pin-item:focus-within .pin-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pin-item:hover .pin-duration,
+.pin-item:focus-within .pin-duration {
+  visibility: hidden;
+}
+
+.pin-action {
+  padding: 4px 5px;
   font-size: 12px;
   line-height: 1;
   color: var(--muted);
   background: none;
   border: none;
   border-radius: 6px;
-  opacity: 0;
 }
 
-.pin-item:hover .pin-remove,
-.pin-item:focus-within .pin-remove {
-  opacity: 1;
+.pin-action:hover {
+  color: var(--fg);
+  background: var(--chip);
 }
 
 .pin-remove:hover {
   color: var(--error);
-  background: var(--chip);
 }
 
 /* A 2x3 dot grid drawn with box-shadow, so the grip icon renders identically
