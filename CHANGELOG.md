@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.19.1
+
+- **Popup order.** Pinned pipelines now come before Pinned tickets, and Create MR (with
+  its Swap source/target branches button) moved below both pinned lists, just above
+  Recent. The popup now reads MRs, Tickets, Pipelines, Go to, Pinned pipelines, Pinned
+  tickets, Create MR, Recent.
+- Create MR has a divider line above it, like the lists around it.
+
+## 0.19.0
+
+- **Pinned tickets.** On a ticket page (`…/-/work_items/2893` or `…/-/issues/2893`) the
+  popup offers **Pin this ticket**. Pinned tickets get their own section above Pinned
+  pipelines and show the GitLab title and open (○) / closed (✓) state, refreshed each
+  time the popup opens. Notes, drag-to-reorder and unpin work as they do for pipelines;
+  a note replaces the title as the headline. Up to 10 tickets.
+- **Notes on the pipeline page.** A pinned pipeline's note now also appears on its GitLab
+  page, after the big pipeline number (`#2866034605  📌 Species list old issue v2`), and
+  updates as soon as you edit it. A small script does this, only on your GitLab site's
+  `…/-/pipelines/…` pages. It adds the `scripting` permission, which shows no install
+  warning. After updating, open the popup once for notes to appear on pipeline pages.
+- The pinned-list code moved out of `popup.js` into `pinned-list.js`, shared by both
+  lists.
+
 ## 0.18.0
 
 - Pinned pipelines can carry a short **note** (up to 80 characters) so a long list

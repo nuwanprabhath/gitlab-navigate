@@ -13,11 +13,13 @@ import {
   normalizeNote,
   originPattern,
   parsePipelineUrl,
+  parseTicketUrl,
   pipelineApiUrl,
   pipelineElapsedSeconds,
   reviewerMrUrl,
   runningPipelinesUrl,
   swapMrBranches,
+  ticketApiUrl,
 } from '../lib/parse.js';
 
 const BASE = 'https://gitlab.com/ternandsparrow/paratoo-fdcp';
@@ -609,5 +611,63 @@ describe('normalizeNote', () => {
     expect(normalizeNote(undefined)).toBe('');
     expect(normalizeNote(null)).toBe('');
     expect(normalizeNote(42)).toBe('');
+  });
+});
+
+describe('parseTicketUrl', () => {
+  test('pulls base and id out of a work item URL', () => {
+    expect(parseTicketUrl(`${BASE}/-/work_items/2893`)).toEqual({ base: BASE, id: '2893' });
+  });
+
+  test('accepts the older issues URL', () => {
+    expect(parseTicketUrl(`${BASE}/-/issues/2893`)).toEqual({ base: BASE, id: '2893' });
+  });
+
+  test('ignores a trailing slash, query string and fragment', () => {
+    expect(parseTicketUrl(`${BASE}/-/work_items/2893/?show=1#note_5`)).toEqual({
+      base: BASE,
+      id: '2893',
+    });
+  });
+
+  test('works for a self-hosted instance', () => {
+    expect(parseTicketUrl('https://gitlab.internal/team/repo/-/work_items/7')).toEqual({
+      base: 'https://gitlab.internal/team/repo',
+      id: '7',
+    });
+  });
+
+  test('returns null for the work item list page', () => {
+    expect(parseTicketUrl(`${BASE}/-/work_items?state=opened`)).toBeNull();
+  });
+
+  test('returns null for the new work item page', () => {
+    expect(parseTicketUrl(`${BASE}/-/work_items/new`)).toBeNull();
+  });
+
+  test('returns null for a pipeline page', () => {
+    expect(parseTicketUrl(`${BASE}/-/pipelines/2816150418`)).toBeNull();
+  });
+
+  test('returns null for a non-http URL', () => {
+    expect(parseTicketUrl('chrome://extensions')).toBeNull();
+  });
+});
+
+describe('ticketApiUrl', () => {
+  test('URL-encodes the project path', () => {
+    expect(ticketApiUrl(BASE, '2893')).toBe(
+      'https://gitlab.com/api/v4/projects/ternandsparrow%2Fparatoo-fdcp/issues/2893',
+    );
+  });
+
+  test('handles a nested subgroup path', () => {
+    expect(ticketApiUrl('https://gitlab.com/a/b/c', '7')).toBe(
+      'https://gitlab.com/api/v4/projects/a%2Fb%2Fc/issues/7',
+    );
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => ticketApiUrl('', '7')).toThrow(ParseError);
   });
 });

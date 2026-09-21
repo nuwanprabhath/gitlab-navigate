@@ -79,9 +79,10 @@ page heading, after the pipeline number and after GitLab's own pipeline name if 
 - Editing or clearing the note in the popup updates any open tab of that pipeline at once
   (`chrome.storage.onChanged`, `local` area, `pinnedPipelines` key). Unpinning removes it.
 - GitLab renders the header with Vue after page load and re-renders it while the pipeline
-  runs. A `MutationObserver` on `document.body` (`childList`, `subtree`), throttled to one
-  check per animation frame, re-inserts the note whenever it is missing and the heading
-  exists.
+  runs. A `MutationObserver` on `document.body` (`childList`, `subtree`), coalesced to one
+  check per batch of DOM changes via a queued microtask, re-inserts the note whenever it
+  is missing and the heading exists. A microtask rather than an animation frame, because
+  animation frames pause in background tabs and never fire in headless test runs.
 
 ### Script
 
@@ -126,6 +127,9 @@ imports), self-contained:
   opened once.
 - Pipeline tabs already open at first registration need a reload.
 - If GitLab renames the test ids, the note silently stops appearing; nothing else breaks.
+- The script serves one GitLab site at a time — the configured repo URL's origin, which
+  every popup open re-applies. Pipelines pinned from another GitLab site keep their
+  note in the popup but do not show it on their pipeline pages.
 
 ## Data
 

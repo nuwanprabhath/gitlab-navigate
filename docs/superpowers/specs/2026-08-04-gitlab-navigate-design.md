@@ -37,6 +37,8 @@ gitlab-navigate/
   popup.html
   popup.css
   popup.js          UI wiring: events, rendering, storage calls
+  pinned-list.js    one pinned list: rows, drag-to-reorder, note editing
+  content/pipeline-note.js  note beside the number on GitLab pipeline pages
   lib/parse.js      pure functions: reference -> URL
   lib/storage.js    chrome.storage read/write helpers
   icons/            16/32/48/128 px PNGs
@@ -45,8 +47,10 @@ gitlab-navigate/
 ```
 
 `lib/parse.js` has no Chrome dependencies and is the only unit-tested module.
-`popup.js` holds all DOM and Chrome API interaction. `lib/storage.js` isolates the
-storage keys so nothing else needs to know them.
+`popup.js`, `pinned-list.js` and `content/pipeline-note.js` hold all DOM and Chrome API
+interaction. `lib/storage.js` isolates the storage keys so nothing else needs to know
+them — except the page-note script, which cannot import modules and reads
+`pinnedPipelines` directly.
 
 Modules load as ES modules (`<script type="module" src="popup.js">`), which MV3
 popups support.
@@ -60,27 +64,29 @@ Fixed-width popup (~320px). Top to bottom:
 1. Header row: title and the gear button (toggles the settings row).
 2. Settings row (hidden by default): base repo URL, default MR target branch, and
    your GitLab username, each its own labelled input + Save button + error line.
-3. Five labelled `.group` sections, each with an `<h2>`:
+3. Four labelled `.group` sections, each with an `<h2>`:
    - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
    - **Pipelines** — the Running, Mine and Authored buttons, side by side.
-   - **Create MR** — a `.from-to` grid: the From and To boxes stacked in column one,
-     with a ⇅ swap button spanning both rows in column two.
    - **Go to** — a `.fields-grid`, two columns wide, holding one `.field` per
      remaining `buildUrl` type.
-   Each `.field` is a flex column: a small sentence-case caption label, the text input,
-   and a hidden error `<p>` beneath. Stacking the label rather than seating it in a
-   left-hand column is what makes two fields fit per row at 320px, and it keeps the
-   example placeholders that a label-inside-the-box design would have displaced. Field
-   labels are sentence case so they do not read as section headings, which are
-   uppercase. In a grid row the error grows its own cell only, leaving its neighbour
-   top-aligned.
-4. "Swap source/target branches" button, immediately beneath Create MR so both
+   Each `.field` (here and in Create MR) is a flex column: a small sentence-case
+   caption label, the text input, and a hidden error `<p>` beneath. Stacking the label
+   rather than seating it in a left-hand column is what makes two fields fit per row at
+   320px, and it keeps the example placeholders that a label-inside-the-box design
+   would have displaced. Field labels are sentence case so they do not read as section
+   headings, which are uppercase. In a grid row the error grows its own cell only,
+   leaving its neighbour top-aligned.
+4. The pin button — "Pin this pipeline" or "Pin this ticket" by page type, hidden
+   unless the active tab is a pipeline or ticket page that is not already pinned —
+   then the "Pinned pipelines" list, then the "Pinned tickets" list.
+5. **Create MR**, a `.group` that also carries `.divided`, giving it the same top rule
+   as the lists around it: a `.from-to` grid with the From and To boxes stacked in
+   column one and a ⇅ swap button spanning both rows in column two.
+6. "Swap source/target branches" button, immediately beneath Create MR so both
    branch-direction controls sit together (hidden unless the active tab qualifies, see
    Data Flow).
-5. "Pin this pipeline" button (hidden unless the active tab is a pipeline page that
-   is not already pinned), then the "Pinned pipelines" list.
-6. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
+7. "Recent" section: up to 8 entries, each a row with a nav button (type badge +
    value, click to reopen) and a 🗑 delete button that's invisible until the row is
    hovered or focused. Hidden when history is empty. The nav button is a two-column
    grid with a fixed 62px badge track, so values line up regardless of badge width
@@ -111,6 +117,8 @@ originPattern(base) -> string                    // host pattern for permissions
 formatDuration(seconds) -> string | null         // "45s", "4m 12s", "1h 3m"
 pipelineElapsedSeconds(pipeline, now) -> number | null
 normalizeNote(raw) -> string                     // canonical note; '' = no note
+parseTicketUrl(url) -> {base, id} | null         // is this a pinnable ticket page?
+ticketApiUrl(base, id) -> string                 // REST endpoint for one ticket
 ```
 
 `extra` is type-specific and only `createMr` uses it, as the target branch.
@@ -243,9 +251,9 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.18.0",
+  "version": "0.19.1",
   "key": "<base64 SPKI public key — pins the extension ID>",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "scripting"],
   "optional_host_permissions": ["*://*/*"],
   "action": { "default_popup": "popup.html" },
   "commands": {
@@ -315,6 +323,15 @@ mode swaps the row's nav button for an input (an input cannot sit inside a butto
 its state is held in `editing` outside the DOM so `renderPinned` rebuilds — notably the
 status refresh — restore the draft and caret. Full design:
 `2026-09-16-pinned-pipeline-notes-design.md`.
+
+**Pinned tickets and page notes.** Tickets are a second pinned list (`pinnedTickets`)
+built by the same `createPinnedList` in `pinned-list.js`; each list supplies only
+`describeRow(entry)`. Ticket rows show the REST issue title and open/closed state, and
+pinning a ticket does not open the note editor. `content/pipeline-note.js`, registered by
+the popup with `chrome.scripting.registerContentScripts` for the configured GitLab
+origin's `…/-/pipelines/…` pages, appends a pinned pipeline's note to the page heading
+and keeps it current via `MutationObserver` and `storage.onChanged`. Full design:
+`2026-09-21-pinned-tickets-and-page-notes-design.md`.
 
 ## Data Flow
 

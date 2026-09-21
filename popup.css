@@ -284,14 +284,19 @@ input[type="text"]:disabled {
 .pin-status[data-status="running"] { color: #1f75cb; }
 .pin-status[data-status="pending"],
 .pin-status[data-status="waiting_for_resource"] { color: #c17d10; }
+.pin-status[data-status="opened"] { color: #108548; }
+.pin-status[data-status="closed"] { color: #1f75cb; }
 
 /* Hover actions sit over the duration instead of reserving their own column,
-   so a note keeps the full row width at rest. */
+   so a note keeps the full row width at rest. Their background matches the hovered
+   row, hiding any text that runs underneath (ticket rows have no duration). */
 .pin-actions {
   position: absolute;
   top: 50%;
   right: 4px;
   display: flex;
+  background: var(--chip);
+  border-radius: 6px;
   transform: translateY(-50%);
   opacity: 0;
   pointer-events: none;
@@ -394,7 +399,10 @@ input[type="text"]:disabled {
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-.recent {
+/* Create MR sits among the lists below Go to, so it takes the same rule above it
+   instead of running on from the pinned list before it. */
+.recent,
+.divided {
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--border);

@@ -5,7 +5,7 @@ popup, paste a ticket number, MR number, commit hash, or branch name, press Ente
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/popup-dark.png">
-  <img src="docs/popup-light.png" alt="The GitLab Navigate popup: MRs, Tickets and Pipelines button rows, a Create branch box, a two-column Go to grid, and a Recent list." width="330">
+  <img src="docs/popup-light.png" alt="The GitLab Navigate popup: MRs, Tickets and Pipelines button rows, a two-column Go to grid, pinned pipelines and tickets, the Create MR boxes, and a Recent list." width="330">
 </picture>
 
 The screenshots are generated from the real markup by `./tools/screenshot.sh` — see
@@ -94,20 +94,6 @@ ref rather than just the default branch:
 - **Authored** — every pipeline you triggered, in any state. No `status` filter, so
   this is a superset of **Mine**.
 
-## Create MR
-
-Two boxes. **From** takes the source branch; **To** is pre-filled with your default MR
-target branch and can be edited for a one-off. Press Enter in either and GitLab's
-new-merge-request page opens with both ends already selected — no re-picking the target
-away from `main` every time.
-
-The **⇅** button between them swaps From and To. That covers the reverse direction:
-with `dev/1.0.12` as your default target, one click makes it the *source* so you can
-diff it against a feature branch.
-
-Both ends accept a leading `origin/` or `refs/heads/`, so pasting straight from
-`git branch -a` works.
-
 ## Go to
 
 Given the base URL above, each box under **Go to** takes a bare reference. They are
@@ -154,14 +140,24 @@ skip); later, hover the row and click ✎. Enter or clicking away saves, Esc can
 saving an empty note removes it. Notes are stored with the pin on this machine and go
 away when you unpin.
 
+**On the pipeline page.** A pinned pipeline's note also appears in GitLab itself, after
+the big pipeline number (`#2866034605  📌 Species list old issue v2`), so you can tell
+pipelines apart without opening the popup. It updates as soon as you edit the note and
+disappears when you unpin. A small script does this; it runs only on your GitLab site's
+`…/-/pipelines/…` pages and is switched on by the popup once you've granted GitLab
+access. After updating the extension, open the popup once for notes to reappear on
+pipeline pages. It covers the GitLab site in your repo URL setting; pipelines pinned
+from a different GitLab site show their note in the popup only.
+
 Status is refreshed each time the popup opens. Cached values appear instantly and are
 replaced when the refresh lands, so the list still reads sensibly offline.
 
 ### How it reads pipeline status
 
-This is the one feature that talks to the GitLab API
-(`/api/v4/projects/:path/pipelines/:id`). It authenticates with the `_gitlab_session`
-cookie your browser already has, so there is **no token to create, and none is stored**.
+Pinned pipelines and pinned tickets are the only features that talk to the GitLab API
+(`/api/v4/projects/:path/pipelines/:id` and `/api/v4/projects/:path/issues/:id`). They
+authenticate with the `_gitlab_session` cookie your browser already has, so there is
+**no token to create, and none is stored**.
 
 That needs permission to make requests to your GitLab instance, which is declared as an
 *optional* permission and requested at runtime the first time you pin — your browser
@@ -169,6 +165,37 @@ will ask, naming only that one host. Nothing is requested at install time, and t
 of the extension keeps working without it. If you decline, pinning still records the
 pipeline and clicking still opens it; the status and branch just stay blank until you
 grant access.
+
+The same access lets the popup switch on the pipeline-page note script, which adds the
+`scripting` permission (Chrome shows no warning for it). If you remove the access in
+your browser settings, the browser stops running that script too.
+
+## Pinned tickets
+
+Keep the tickets you're working on one click away. Open a ticket (`…/-/work_items/2893`
+or `…/-/issues/2893`) and the popup shows **Pin this ticket**. Each pinned ticket shows
+its GitLab title and whether it's open (○) or closed (✓), refreshed each time the popup
+opens. Add a note with ✎ and it replaces the title as the headline, with the number and
+title on the line below. Drag to reorder and ✕ to unpin — the same controls as pinned
+pipelines. Up to 10 tickets.
+
+The title comes through the same GitLab access pinned pipelines use (see [How it reads
+pipeline status](#how-it-reads-pipeline-status)). GitLab's work-item Status field ("In
+progress") is only available through its GraphQL API, so it isn't shown.
+
+## Create MR
+
+Two boxes. **From** takes the source branch; **To** is pre-filled with your default MR
+target branch and can be edited for a one-off. Press Enter in either and GitLab's
+new-merge-request page opens with both ends already selected — no re-picking the target
+away from `main` every time.
+
+The **⇅** button between them swaps From and To. That covers the reverse direction:
+with `dev/1.0.12` as your default target, one click makes it the *source* so you can
+diff it against a feature branch.
+
+Both ends accept a leading `origin/` or `refs/heads/`, so pasting straight from
+`git branch -a` works.
 
 ## Recent
 

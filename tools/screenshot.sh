@@ -71,7 +71,7 @@ pins = [
 
 
 def pin_item(status, glyph, pid, ref, duration, note):
-    # Mirrors buildNavButton()/buildActions() in popup.js.
+    # Mirrors describePipeline() in popup.js and buildNavButton()/buildActions() in pinned-list.js.
     headline = (f'<span class="pin-note">{note}</span>' if note
                 else f'<span class="pin-id">#{pid}</span>')
     subline = f'#{pid} &#xB7; {ref}' if note else ref
@@ -95,6 +95,36 @@ html = (html
         .replace('<section id="pinned" class="recent" hidden>', '<section id="pinned" class="recent">')
         .replace('<ul id="pinned-list"></ul>', f'<ul id="pinned-list">{pin_items}</ul>'))
 
+tickets = [
+    ('opened', '&#x25CB;', '2893', 'Species list shows stale chunks', None),
+    ('opened', '&#x25CB;', '2950', 'Past data empty after sync', 'My fix is on MR !1261'),
+    ('closed', '&#x2713;', '2846', 'Login redirect loop', None),
+]
+
+
+def ticket_item(state, glyph, tid, title, note):
+    # Mirrors describeTicket() in popup.js and buildNavButton()/buildActions() in pinned-list.js.
+    headline = note or title
+    subline = f'#{tid} &#xB7; {title}' if note else f'#{tid}'
+    return (
+        f'<li class="pin-item">'
+        f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
+        f'<button type="button" class="pin-nav">'
+        f'<span class="pin-status" data-status="{state}">{glyph}</span>'
+        f'<span class="pin-main"><span class="pin-note">{headline}</span><span class="pin-ref">{subline}</span></span>'
+        f'</button>'
+        f'<span class="pin-actions">'
+        f'<button type="button" class="pin-action pin-note-edit" aria-label="Edit note">&#x270E;</button>'
+        f'<button type="button" class="pin-action pin-remove" aria-label="Unpin this ticket">&#x2715;</button>'
+        f'</span>'
+        f'</li>')
+
+
+ticket_items = '\n'.join(ticket_item(*t) for t in tickets)
+html = (html
+        .replace('<section id="pinned-tickets" class="recent" hidden>', '<section id="pinned-tickets" class="recent">')
+        .replace('<ul id="pinned-tickets-list"></ul>', f'<ul id="pinned-tickets-list">{ticket_items}</ul>'))
+
 light = re.search(r'^:root\s*\{([^}]*)\}', css, re.M)
 dark = re.search(r'@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}', css)
 if not (light and dark):
@@ -107,7 +137,7 @@ PY
 
 for theme in light dark; do
   "$CHROME" --headless --disable-gpu --hide-scrollbars \
-    --screenshot="$PWD/docs/popup-$theme.png" --window-size=330,1100 \
+    --screenshot="$PWD/docs/popup-$theme.png" --window-size=330,1400 \
     "file://$WORK/popup-$theme.html" >/dev/null 2>&1
 done
 

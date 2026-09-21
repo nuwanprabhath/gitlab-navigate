@@ -8,16 +8,16 @@ import {
   mineMrUrl,
   myPipelinesUrl,
   formatDuration,
-  NOTE_MAX_LENGTH,
   normalizeBase,
-  normalizeNote,
   originPattern,
   parsePipelineUrl,
+  parseTicketUrl,
   pipelineApiUrl,
   pipelineElapsedSeconds,
   reviewerMrUrl,
   runningPipelinesUrl,
   swapMrBranches,
+  ticketApiUrl,
 } from './lib/parse.js';
 import {
   getBase,
@@ -25,17 +25,15 @@ import {
   getTargetBranch,
   getUsername,
   getPinned,
-  pinPipeline,
+  pinItem,
   pushHistory,
   removeHistory,
-  reorderPinned,
-  setPinnedNote,
-  unpinPipeline,
   updatePinned,
   setBase,
   setTargetBranch,
   setUsername,
 } from './lib/storage.js';
+import { createPinnedList } from './pinned-list.js';
 
 const LABELS = {
   ticket: 'Ticket',
@@ -74,8 +72,10 @@ const ticketsAuthored = document.getElementById('tickets-authored');
 const pipelinesRunning = document.getElementById('pipelines-running');
 const pipelinesMine = document.getElementById('pipelines-mine');
 const pipelinesAuthored = document.getElementById('pipelines-authored');
-const pinPipelineSection = document.getElementById('pin-pipeline');
-const pinPipelineButton = document.getElementById('pin-pipeline-button');
+const pinSection = document.getElementById('pin-page');
+const pinButton = document.getElementById('pin-page-button');
+const pinnedTickets = document.getElementById('pinned-tickets');
+const pinnedTicketsList = document.getElementById('pinned-tickets-list');
 const pinned = document.getElementById('pinned');
 const pinnedList = document.getElementById('pinned-list');
 const recent = document.getElementById('recent');
@@ -86,15 +86,9 @@ let targetBranch = '';
 let username = '';
 let activeTabId = null;
 let swappedUrl = '';
-let pinnablePipeline = null;
-let pinnedEntries = [];
+// What the active tab shows, if it can be pinned: { kind, base, id }.
+let pinnable = null;
 let tickTimer = null;
-let draggedIndex = null;
-// The row being edited, kept outside the DOM so list rebuilds cannot lose it:
-// { base, id, draft, selectionStart, selectionEnd, cancelled }
-let editing = null;
-// True while renderPinned rebuilds the list; blurs it causes are not saves.
-let rendering = false;
 
 function showError(element, message) {
   element.textContent = message;
@@ -193,275 +187,115 @@ async function submitReference(input) {
 }
 
 const STATUS_GLYPHS = {
-  success: '\u2713',
-  failed: '\u2715',
-  running: '\u25CF',
-  pending: '\u25CB',
-  created: '\u25CB',
-  waiting_for_resource: '\u25CB',
-  preparing: '\u25CB',
-  canceled: '\u2298',
-  canceling: '\u2298',
-  skipped: '\u00BB',
-  manual: '\u25B7',
-  scheduled: '\u25F4',
+  success: '✓',
+  failed: '✕',
+  running: '●',
+  pending: '○',
+  created: '○',
+  waiting_for_resource: '○',
+  preparing: '○',
+  canceled: '⊘',
+  canceling: '⊘',
+  skipped: '»',
+  manual: '▷',
+  scheduled: '◴',
 };
 
 function pipelineWebUrl(entry) {
   return entry.webUrl || `${entry.base}/-/pipelines/${entry.id}`;
 }
 
-function clearDragOverMarkers() {
-  for (const li of pinnedList.querySelectorAll('.pin-item')) {
-    li.classList.remove('drag-over-top', 'drag-over-bottom');
-  }
-}
-
-function statusGlyph(entry) {
-  const status = document.createElement('span');
-  status.className = 'pin-status';
-  status.dataset.status = entry.status ?? 'unknown';
-  status.textContent = STATUS_GLYPHS[entry.status] ?? '\u25CF';
-  return status;
-}
-
-function pinMain(headline, subline) {
-  const main = document.createElement('span');
-  main.className = 'pin-main';
-  main.append(headline, subline);
-  return main;
-}
-
-function pinSubline(text) {
-  const sub = document.createElement('span');
-  sub.className = 'pin-ref';
-  sub.textContent = text;
-  return sub;
-}
-
 function idAndRef(entry) {
-  return [`#${entry.id}`, entry.ref].filter(Boolean).join(' \u00B7 ');
+  return [`#${entry.id}`, entry.ref].filter(Boolean).join(' · ');
 }
 
-function buildNavButton(entry) {
-  const noted = Boolean(entry.note);
-
-  const headline = document.createElement('span');
-  headline.className = noted ? 'pin-note' : 'pin-id';
-  headline.textContent = noted ? entry.note : `#${entry.id}`;
+function describePipeline(entry) {
+  const statusLine = entry.status
+    ? `${entry.status}${entry.ref ? ` on ${entry.ref}` : ''}`
+    : pipelineWebUrl(entry);
 
   const duration = document.createElement('span');
   duration.className = 'pin-duration';
   duration.dataset.pipelineId = entry.id;
   duration.textContent = formatDuration(pipelineElapsedSeconds(entry.raw ?? {})) ?? '';
 
-  const statusLine = entry.status
-    ? `${entry.status}${entry.ref ? ` on ${entry.ref}` : ''}`
-    : pipelineWebUrl(entry);
-
-  const nav = document.createElement('button');
-  nav.type = 'button';
-  nav.className = 'pin-nav';
-  nav.title = noted ? `${entry.note}\n${statusLine}` : statusLine;
-  nav.append(
-    statusGlyph(entry),
-    pinMain(headline, pinSubline(noted ? idAndRef(entry) : entry.ref ?? '')),
-    duration,
-  );
-  nav.addEventListener('click', () => navigate(pipelineWebUrl(entry)));
-  return nav;
-}
-
-function buildActions(entry) {
-  const edit = document.createElement('button');
-  edit.type = 'button';
-  edit.className = 'pin-action pin-note-edit';
-  edit.title = entry.note ? 'Edit note' : 'Add note';
-  edit.setAttribute('aria-label', edit.title);
-  edit.textContent = '\u270e';
-  edit.addEventListener('click', () => startEditing(entry));
-
-  const remove = document.createElement('button');
-  remove.type = 'button';
-  remove.className = 'pin-action pin-remove';
-  remove.title = 'Unpin';
-  remove.setAttribute('aria-label', 'Unpin this pipeline');
-  remove.textContent = '\u2715';
-  remove.addEventListener('click', async () => {
-    pinnedEntries = await unpinPipeline(entry.base, entry.id);
-    renderPinned();
-    await refreshPinButton();
-  });
-
-  const actions = document.createElement('span');
-  actions.className = 'pin-actions';
-  actions.append(edit, remove);
-  return actions;
-}
-
-function rememberDraft(input) {
-  if (!editing) return;
-  editing.draft = input.value;
-  editing.selectionStart = input.selectionStart;
-  editing.selectionEnd = input.selectionEnd;
-}
-
-function buildEditor(entry) {
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'pin-note-input';
-  input.maxLength = NOTE_MAX_LENGTH;
-  input.placeholder = "What's this pipeline for?";
-  input.setAttribute('aria-label', `Note for pipeline #${entry.id}`);
-  input.value = editing.draft;
-
-  for (const type of ['input', 'select', 'keyup', 'click']) {
-    input.addEventListener(type, () => rememberDraft(input));
-  }
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      commitEdit();
-    } else if (event.key === 'Escape') {
-      // Flag first: if the browser closes the popup on Esc, the blur that
-      // follows must not save.
-      editing.cancelled = true;
-      event.preventDefault();
-      cancelEdit();
-    }
-  });
-  input.addEventListener('blur', () => {
-    if (rendering || !input.isConnected || !editing || editing.cancelled) return;
-    commitEdit();
-  });
-
-  const editor = document.createElement('div');
-  editor.className = 'pin-edit';
-  editor.append(statusGlyph(entry), pinMain(input, pinSubline(idAndRef(entry))));
-  return editor;
-}
-
-function buildPinnedRow(entry, index) {
-  const isEditing = editing?.base === entry.base && editing?.id === entry.id;
-
-  // A dedicated grab handle, rather than the whole row, so dragging never
-  // fights with clicking nav or the hover actions.
-  const handle = document.createElement('span');
-  handle.className = 'pin-handle';
-  handle.draggable = !isEditing;
-  handle.title = 'Drag to reorder';
-  handle.setAttribute('aria-label', 'Drag to reorder');
-
-  const item = document.createElement('li');
-  item.className = 'pin-item';
-  if (isEditing) item.append(handle, buildEditor(entry));
-  else item.append(handle, buildNavButton(entry), buildActions(entry));
-
-  handle.addEventListener('dragstart', (event) => {
-    draggedIndex = index;
-    item.classList.add('dragging');
-    event.dataTransfer.effectAllowed = 'move';
-    // Firefox requires data to be set for the drag to actually start.
-    event.dataTransfer.setData('text/plain', String(index));
-  });
-
-  handle.addEventListener('dragend', () => {
-    item.classList.remove('dragging');
-    draggedIndex = null;
-    clearDragOverMarkers();
-  });
-
-  item.addEventListener('dragover', (event) => {
-    if (draggedIndex === null) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-
-    const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
-    item.classList.toggle('drag-over-bottom', isAfter);
-    item.classList.toggle('drag-over-top', !isAfter);
-  });
-
-  item.addEventListener('dragleave', () => {
-    item.classList.remove('drag-over-top', 'drag-over-bottom');
-  });
-
-  item.addEventListener('drop', async (event) => {
-    event.preventDefault();
-    clearDragOverMarkers();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    const isAfter = event.clientY - item.getBoundingClientRect().top > item.offsetHeight / 2;
-    let targetIndex = isAfter ? index + 1 : index;
-    if (draggedIndex < targetIndex) targetIndex -= 1;
-
-    const moved = pinnedEntries[draggedIndex];
-    pinnedEntries = await reorderPinned(moved.base, moved.id, targetIndex);
-    renderPinned();
-  });
-
-  return item;
-}
-
-function renderPinned() {
-  rendering = true;
-  try {
-    pinnedList.replaceChildren(...pinnedEntries.map(buildPinnedRow));
-  } finally {
-    rendering = false;
-  }
-  pinned.hidden = pinnedEntries.length === 0;
-
-  const input = pinnedList.querySelector('.pin-note-input');
-  if (input) {
-    input.focus();
-    input.setSelectionRange(editing.selectionStart, editing.selectionEnd);
-  }
-
-  scheduleTick();
-}
-
-function startEditing(entry) {
-  if (editing) commitEdit();
-  const note = entry.note ?? '';
-  editing = {
-    base: entry.base,
-    id: entry.id,
-    draft: note,
-    selectionStart: 0,
-    selectionEnd: note.length,
-    cancelled: false,
+  return {
+    status: entry.status ?? 'unknown',
+    glyph: STATUS_GLYPHS[entry.status] ?? '●',
+    headline: entry.note || `#${entry.id}`,
+    headlineIsId: !entry.note,
+    subline: entry.note ? idAndRef(entry) : entry.ref ?? '',
+    editSubline: idAndRef(entry),
+    tooltip: entry.note ? `${entry.note}\n${statusLine}` : statusLine,
+    trailing: duration,
+    url: pipelineWebUrl(entry),
   };
-  renderPinned();
 }
 
-// State is cleared before the write, but the list is only rebuilt after it, so a
-// click that caused this blur (e.g. ✎ on another row) still lands on its button.
-async function commitEdit() {
-  if (!editing) return;
-  const { base, id, draft } = editing;
-  editing = null;
-  pinnedEntries = await setPinnedNote(base, id, normalizeNote(draft));
-  renderPinned();
-}
-
-function cancelEdit() {
-  editing = null;
-  renderPinned();
-}
+const pipelinesList = createPinnedList({
+  kind: 'pipelines',
+  noun: 'pipeline',
+  section: pinned,
+  list: pinnedList,
+  describeRow: describePipeline,
+  navigate,
+  onRender() {
+    scheduleTick();
+    refreshPinButton();
+  },
+});
 
 // Only running pipelines have a duration that moves, so the timer exists only for them.
 function scheduleTick() {
   if (tickTimer) clearInterval(tickTimer);
-  if (!pinnedEntries.some((e) => e.raw && !e.raw.finished_at && e.status !== 'success')) {
-    return;
-  }
+  const entries = pipelinesList.getEntries();
+  if (!entries.some((e) => e.raw && !e.raw.finished_at && e.status !== 'success')) return;
   tickTimer = setInterval(() => {
-    for (const entry of pinnedEntries) {
+    for (const entry of pipelinesList.getEntries()) {
       const cell = pinnedList.querySelector(`[data-pipeline-id="${entry.id}"]`);
       if (cell) cell.textContent = formatDuration(pipelineElapsedSeconds(entry.raw ?? {})) ?? '';
     }
   }, 1000);
 }
+
+function ticketWebUrl(entry) {
+  return entry.webUrl || `${entry.base}/-/work_items/${entry.id}`;
+}
+
+const TICKET_GLYPHS = { opened: '○', closed: '✓' };
+const TICKET_STATES = { opened: 'open', closed: 'closed' };
+
+function describeTicket(entry) {
+  const number = `#${entry.id}`;
+  const headline = entry.note || entry.title || number;
+  let subline = '';
+  if (entry.note) subline = entry.title ? `${number} · ${entry.title}` : number;
+  else if (entry.title) subline = number;
+
+  return {
+    status: entry.state ?? 'unknown',
+    glyph: TICKET_GLYPHS[entry.state] ?? '●',
+    headline,
+    headlineIsId: !entry.note && !entry.title,
+    subline,
+    editSubline: entry.title ? `${number} · ${entry.title}` : number,
+    tooltip: [headline, TICKET_STATES[entry.state]].filter(Boolean).join('\n'),
+    trailing: null,
+    url: ticketWebUrl(entry),
+  };
+}
+
+const ticketsList = createPinnedList({
+  kind: 'tickets',
+  noun: 'ticket',
+  section: pinnedTickets,
+  list: pinnedTicketsList,
+  describeRow: describeTicket,
+  navigate,
+  onRender: refreshPinButton,
+});
+
+const lists = { pipelines: pipelinesList, tickets: ticketsList };
 
 async function hasGitLabAccess() {
   if (!base) return false;
@@ -469,6 +303,32 @@ async function hasGitLabAccess() {
     return await chrome.permissions.contains({ origins: [originPattern(base)] });
   } catch {
     return false;
+  }
+}
+
+const PAGE_NOTE_SCRIPT = {
+  id: 'pipeline-note',
+  js: ['content/pipeline-note.js'],
+  runAt: 'document_idle',
+  persistAcrossSessions: true,
+};
+
+// Keeps the pipeline-page note script registered for the GitLab site in `forBase`. Runs
+// on every popup open because browsers clear registered scripts when the extension
+// updates, and the repo URL may have moved to another GitLab site.
+async function ensurePipelineNoteScript(forBase) {
+  try {
+    const script = {
+      ...PAGE_NOTE_SCRIPT,
+      matches: [`${new URL(forBase).origin}/*/-/pipelines/*`],
+    };
+    const [existing] = await chrome.scripting.getRegisteredContentScripts({ ids: [script.id] });
+    if (!existing) await chrome.scripting.registerContentScripts([script]);
+    else if (existing.matches?.[0] !== script.matches[0]) {
+      await chrome.scripting.updateContentScripts([script]);
+    }
+  } catch {
+    // Only the page note is lost; the popup itself is unaffected.
   }
 }
 
@@ -488,53 +348,90 @@ async function fetchPipeline(entry) {
   };
 }
 
-// Cached values render immediately; the network refresh replaces them when it lands, so
-// an offline or unauthenticated popup still shows the last known state.
-async function refreshPinnedStatuses() {
-  if (pinnedEntries.length === 0 || !(await hasGitLabAccess())) return;
+async function fetchTicket(entry) {
+  const response = await fetch(ticketApiUrl(entry.base, entry.id), {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error(`GitLab returned ${response.status}`);
+  const raw = await response.json();
+  return {
+    base: entry.base,
+    id: entry.id,
+    title: raw.title,
+    state: raw.state,
+    webUrl: raw.web_url,
+  };
+}
 
-  const results = await Promise.allSettled(pinnedEntries.map(fetchPipeline));
+const FETCHERS = { pipelines: fetchPipeline, tickets: fetchTicket };
+
+async function refreshPinned(kind) {
+  const list = lists[kind];
+  const entries = list.getEntries();
+  if (entries.length === 0) return;
+
+  const results = await Promise.allSettled(entries.map(FETCHERS[kind]));
   const updates = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
   if (updates.length === 0) return;
 
-  pinnedEntries = await updatePinned(updates);
-  renderPinned();
+  try {
+    list.setEntries(await updatePinned(kind, updates));
+  } catch {
+    // Storage failed; the list keeps showing the cached values.
+  }
 }
 
-async function refreshPinButton() {
-  const alreadyPinned = pinnablePipeline
-    ? pinnedEntries.some(
-        (e) => e.base === pinnablePipeline.base && e.id === pinnablePipeline.id,
-      )
-    : true;
-  pinPipelineSection.hidden = !pinnablePipeline || alreadyPinned;
+// Cached values render immediately; the network refresh replaces them when it lands, so
+// an offline or unauthenticated popup still shows the last known state.
+async function refreshAllPinned() {
+  if (!(await hasGitLabAccess())) return;
+  ensurePipelineNoteScript(base);
+  refreshPinned('pipelines');
+  refreshPinned('tickets');
 }
 
-async function doPinPipeline() {
-  if (!pinnablePipeline) return;
+function refreshPinButton() {
+  const alreadyPinned =
+    Boolean(pinnable) &&
+    lists[pinnable.kind]
+      .getEntries()
+      .some((e) => e.base === pinnable.base && e.id === pinnable.id);
+  pinSection.hidden = !pinnable || alreadyPinned;
+  if (pinnable) {
+    const noun = pinnable.kind === 'tickets' ? 'ticket' : 'pipeline';
+    pinButton.textContent = `\u{1F4CC} Pin this ${noun}`;
+  }
+}
+
+async function doPin() {
+  if (!pinnable) return;
+  const { kind, base: itemBase, id } = pinnable;
 
   // Must be the first await in a click handler, or the user gesture is lost.
   let granted = false;
   try {
-    granted = await chrome.permissions.request({
-      origins: [originPattern(pinnablePipeline.base)],
-    });
+    granted = await chrome.permissions.request({ origins: [originPattern(itemBase)] });
   } catch {
     granted = false;
   }
 
-  let entry = { ...pinnablePipeline };
+  if (granted) ensurePipelineNoteScript(itemBase);
+
+  let entry = { base: itemBase, id };
   if (granted) {
     try {
-      entry = await fetchPipeline(pinnablePipeline);
+      entry = await FETCHERS[kind](entry);
     } catch {
       // Keep the pin; it just shows as unknown until a later refresh succeeds.
     }
   }
 
-  pinnedEntries = await pinPipeline(entry);
-  startEditing(pinnedEntries.find((p) => p.base === entry.base && p.id === entry.id));
-  await refreshPinButton();
+  const list = lists[kind];
+  list.setEntries(await pinItem(kind, entry));
+  // A pipeline is only a number, so ask for a note; a ticket already shows its title.
+  if (kind === 'pipelines') {
+    list.startEditing(list.getEntries().find((p) => p.base === entry.base && p.id === entry.id));
+  }
 }
 
 async function submitCreateMr() {
@@ -603,8 +500,11 @@ async function checkActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) return;
 
-  pinnablePipeline = parsePipelineUrl(tab.url);
-  await refreshPinButton();
+  const pipeline = parsePipelineUrl(tab.url);
+  const ticket = pipeline ? null : parseTicketUrl(tab.url);
+  if (pipeline) pinnable = { kind: 'pipelines', ...pipeline };
+  else if (ticket) pinnable = { kind: 'tickets', ...ticket };
+  refreshPinButton();
 
   try {
     swappedUrl = swapMrBranches(tab.url);
@@ -700,7 +600,7 @@ baseInput.addEventListener('keydown', (event) => {
 });
 
 swapMrButton.addEventListener('click', doSwapMr);
-pinPipelineButton.addEventListener('click', doPinPipeline);
+pinButton.addEventListener('click', doPin);
 fromToSwap.addEventListener('click', swapFromTo);
 
 for (const input of [mrFrom, mrTo]) {
@@ -745,10 +645,10 @@ async function init() {
   historyInput.value = targetBranch;
   renderHistory(await getHistory());
 
-  pinnedEntries = await getPinned();
-  renderPinned();
+  ticketsList.setEntries(await getPinned('tickets'));
+  pipelinesList.setEntries(await getPinned('pipelines'));
   await checkActiveTab();
-  refreshPinnedStatuses();
+  refreshAllPinned();
 
   if (base) {
     setInputsEnabled(true);
