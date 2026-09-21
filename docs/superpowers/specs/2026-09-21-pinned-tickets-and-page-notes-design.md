@@ -93,8 +93,9 @@ imports), self-contained:
    `pipeline_header.vue` and are the most stable hooks available.
 2. **Find the note:** normalize the page URL (`origin + pathname`, trailing slash removed)
    and compare it with each pinned pipeline's URL — `entry.webUrl` or
-   `${entry.base}/-/pipelines/${entry.id}`, normalized the same way. First match with a
-   non-empty `note` wins. This compares against the entries' own URLs instead of
+   `${entry.base}/-/pipelines/${entry.id}`, normalized the same way. The page matches
+   when it equals that URL or is one of the pipeline's tabs beneath it (e.g.
+   `…/-/pipelines/<id>/builds`). First match with a non-empty `note` wins. This compares against the entries' own URLs instead of
    re-implementing `parsePipelineUrl`.
 3. **Mark its node** with `data-gitlab-navigate-note` so it can be found, updated or
    removed, and never duplicated.
