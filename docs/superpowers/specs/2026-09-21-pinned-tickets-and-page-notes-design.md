@@ -41,8 +41,9 @@ PINNED TICKETS
 - **Glyph:** `○` green (`#108548`) = `opened`; `✓` blue (`#1f75cb`) = `closed`;
   muted `●` = unknown (no data yet).
 - **Headline:** note → GitLab title → `#<n>`.
-- **Small line:** `#<n> · <title>` when a note is shown and a title is known; otherwise
-  `#<n>` when the title is the headline; otherwise empty.
+- **Small line:** `#<n> · <title>` when the headline is the note and a title is known;
+  `#<n>` when the headline is the note or the title; empty when the headline is already
+  `#<n>`.
 - **Tooltip:** first line = the headline text in full; second line = `open` / `closed`
   when known.
 - No duration column; ✎ and ✕ appear on hover at the right, exactly as on pipeline rows.
