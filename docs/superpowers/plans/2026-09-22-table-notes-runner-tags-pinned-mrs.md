@@ -23,7 +23,7 @@ Spec: `docs/superpowers/specs/2026-09-22-table-notes-runner-tags-pinned-mrs-desi
 - Storage keys: `pinnedMrs` (local, cap 10), `runnerTags` (local, `{ [pipeline url]: string[] }`, newest 500, pre-ignore tags, written only when the jobs list is non-empty), `ignoredJobTags` (sync, `string[]`). `pinnedPipelines` and `pinnedTickets` are unchanged.
 - MR entry shape: `{ base, id, title, state, sourceBranch, targetBranch, pipelineStatus, webUrl, note?, pinnedAt }`, `id` = iid as a string.
 - MR status token → glyph, colour: `opened` and `locked` → `opened`, `○` (U+25CB), `#108548`; `merged` → `merged`, `✓` (U+2713), `#1f75cb`; `closed` → `mr-closed`, `✕` (U+2715), `#dd2b0e`; unknown → `unknown`, `●` (U+25CF), muted.
-- MR small line: branches text = `source → target` (U+2192 with spaces), with a source over 24 characters cut to its first 23 + `…` (U+2026). `!<iid> · <branches>` when branches are known and the headline is not `!<iid>`; `<branches>` when the headline is `!<iid>`; `!<iid>` when branches are unknown and the headline is not `!<iid>`; empty otherwise. Separator ` · ` is U+00B7 with spaces.
+- MR small line (amended during Task 6 by user ruling): `!<iid> · <source>` when branches are known and the headline is not `!<iid>`; `<source>` when the headline is `!<iid>`; `!<iid>` when branches are unknown and the headline is not `!<iid>`; empty otherwise. When branches are known, `sublineTail` = ` → <target>` (U+2192 with spaces) follows it and never shrinks; only the part before it ellipsizes (`.pin-ref-head` / `.pin-ref-tail`). No fixed character cut. Separator ` · ` is U+00B7 with spaces.
 - Copy: pin button `📌 Pin this MR`; section heading `Pinned MRs`; note placeholder `What's this MR for?`; note aria-label `Note for MR !<iid>`; unpin aria-label `Unpin this MR`; settings label `Ignore job tags`, placeholder `cypress`; badge title `Runner tag`.
 - Pinning an MR does NOT open the note editor.
 - Unit tests (bun) cover `lib/parse.js` and `content/shared.js` only. Do not add a storage test harness.
@@ -2571,21 +2571,18 @@ mrs = [
 ]
 
 
-def short_branch(branch):
-    # Mirrors shortBranch() in popup.js.
-    return branch if len(branch) <= 24 else branch[:23] + '&#x2026;'
-
-
 def mr_item(status, glyph, iid, title, note, source, target, pipeline, pipeline_glyph):
-    # Mirrors describeMr() in popup.js and buildNavButton()/buildActions() in pinned-list.js.
+    # Mirrors describeMr() in popup.js and buildNavButton()/pinSubline()/buildActions() in
+    # pinned-list.js: the target is a tail that never shrinks, so only the source ellipsizes.
     headline = note or title
-    subline = f'!{iid} &#xB7; {short_branch(source)} &#x2192; {target}'
     return (
         f'<li class="pin-item">'
         f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
         f'<button type="button" class="pin-nav">'
         f'<span class="pin-status" data-status="{status}">{glyph}</span>'
-        f'<span class="pin-main"><span class="pin-note">{headline}</span><span class="pin-ref">{subline}</span></span>'
+        f'<span class="pin-main"><span class="pin-note">{headline}</span>'
+        f'<span class="pin-ref pin-ref-split"><span class="pin-ref-head">!{iid} &#xB7; {source}</span>'
+        f'<span class="pin-ref-tail"> &#x2192; {target}</span></span></span>'
         f'<span class="pin-status pin-mr-pipeline" data-status="{pipeline}">{pipeline_glyph}</span>'
         f'</button>'
         f'<span class="pin-actions">'
@@ -2604,7 +2601,7 @@ light = re.search(r'^:root\s*\{([^}]*)\}', css, re.M)
 ```
 
 Run: `./tools/screenshot.sh && ls -l docs/popup-*.png`
-Expected: two lines like `popup-light.png: 330x1160  bg=(255, 255, 255)`, and both files over 20,000 bytes. Open both with the Read tool. From top to bottom they show MRS, TICKETS, PIPELINES, GO TO, PINNED PIPELINES, PINNED TICKETS, **PINNED MRS** (two rows, as in Task 6's `t6-rest.png`), CREATE MR, RECENT. Nothing is cut off at the bottom. Dark mode is readable.
+Expected: two lines like `popup-light.png: 330x1160  bg=(255, 255, 255)`, and both files over 20,000 bytes. Open both with the Read tool. From top to bottom they show MRS, TICKETS, PIPELINES, GO TO, PINNED PIPELINES, PINNED TICKETS, **PINNED MRS** (two rows, as in Task 6's `t6-rest.png`: each small line ends with the full `→ dev/1.0.12` / `→ dev/1.0.13`, the source shortened by `…` before it), CREATE MR, RECENT. Nothing is cut off at the bottom. Dark mode is readable.
 
 - [ ] **Step 2: Version**
 

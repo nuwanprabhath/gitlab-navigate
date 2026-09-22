@@ -172,9 +172,9 @@ A **Pinned MRs** section after Pinned tickets and before Create MR, capped at 10
 ```
 PINNED MRS
 ⠿ ○  Camera trap variations                 ●
-     !1310 · 2319-camera-trapping-mo… → dev/1.0.12
+     !1310 · 2319-camera-tr… → dev/1.0.12
 ⠿ ✓  fix(test): dropdown harness carried…   ✓
-     !1303 · fix/cypress-dropdown-an… → dev/1.0.13
+     !1303 · fix/cypress-drop… → dev/1.0.13
 ```
 
 - **State glyph** (`status` token → glyph, colour):
@@ -184,12 +184,16 @@ PINNED MRS
     tickets already colour `closed` blue.)
   - unknown → token `unknown`, muted `●`.
 - **Headline:** note → title → `!<iid>`.
-- **Branches text:** `source → target`, where a source branch longer than 24 characters
-  becomes its first 23 characters + `…`, so the target stays visible.
-- **Small line:** `!<iid> · <branches>` when branches are known and the headline is not
-  `!<iid>`; `<branches>` when the headline is `!<iid>`; `!<iid>` when branches are
-  unknown and the headline is not `!<iid>`; empty otherwise.
-- **Edit-mode small line:** `!<iid> · <branches>`, or `!<iid>` when unknown.
+- **Small line:** `!<iid> · <source>` when branches are known and the headline is not
+  `!<iid>`; `<source>` when the headline is `!<iid>`; `!<iid>` when branches are unknown
+  and the headline is not `!<iid>`; empty otherwise. When branches are known it is
+  followed by a tail, ` → <target>`, that never shrinks: only the part before it
+  shortens with an ellipsis, so the target stays visible at any width. (`describeRow`
+  returns it as `sublineTail`; `pinned-list.js` renders `.pin-ref-head` +
+  `.pin-ref-tail`.) This replaced a fixed 24-character source cut, which still clipped
+  the target at the popup's width.
+- **Edit-mode small line:** `!<iid> · <source>` plus the same tail, or `!<iid>` when
+  branches are unknown.
 - **Trailing:** the MR's head pipeline status glyph (`STATUS_GLYPHS`), as
   `<span class="pin-status pin-mr-pipeline" data-status="<pipeline status>"
   title="Pipeline <status>">`, reusing the pipeline status colours; `null` when there is
@@ -226,7 +230,7 @@ for GETs, as for pipelines and tickets.
 |------|--------|
 | `lib/parse.js` | + `parseMrUrl(url) → {base, id} \| null`; + `mrApiUrl(base, id)`; + `parseTagList(text) → string[]` |
 | `lib/storage.js` | + list kind `mrs` → `pinnedMrs`; + `getIgnoredJobTags()` / `setIgnoredJobTags(tags)` |
-| `pinned-list.js` | + optional `idPrefix` (default `#`) for the note box's aria-label |
+| `pinned-list.js` | + optional `idPrefix` (default `#`) for the note box's aria-label; + optional `sublineTail` that never shrinks |
 | `popup.js` | `describeMr`, `fetchMr`, third list instance, MR branch in `checkActiveTab` and the pin button; Ignore job tags setting; `ensurePipelineNoteScript` compares `matches` and `js` |
 | `popup.html` / `popup.css` | Pinned MRs section; settings field; `merged` / `mr-closed` colours; `.pin-mr-pipeline` |
 | `content/shared.js` (new) | helpers above |
