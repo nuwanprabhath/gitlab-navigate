@@ -6,10 +6,12 @@ import {
   buildUrl,
   inProgressTicketsUrl,
   mineMrUrl,
+  mrApiUrl,
   myPipelinesUrl,
   formatDuration,
   normalizeBase,
   originPattern,
+  parseMrUrl,
   parsePipelineUrl,
   parseTagList,
   parseTicketUrl,
@@ -82,6 +84,8 @@ const pinSection = document.getElementById('pin-page');
 const pinButton = document.getElementById('pin-page-button');
 const pinnedTickets = document.getElementById('pinned-tickets');
 const pinnedTicketsList = document.getElementById('pinned-tickets-list');
+const pinnedMrs = document.getElementById('pinned-mrs');
+const pinnedMrsList = document.getElementById('pinned-mrs-list');
 const pinned = document.getElementById('pinned');
 const pinnedList = document.getElementById('pinned-list');
 const recent = document.getElementById('recent');
@@ -304,7 +308,82 @@ const ticketsList = createPinnedList({
   onRender: refreshPinButton,
 });
 
-const lists = { pipelines: pipelinesList, tickets: ticketsList };
+function mrWebUrl(entry) {
+  return entry.webUrl || `${entry.base}/-/merge_requests/${entry.id}`;
+}
+
+// GitLab's MR states mapped to row tokens. A closed ticket is done, but a closed MR was
+// abandoned, so MRs use `mr-closed` rather than sharing the ticket's blue `closed`.
+const MR_STATUS = { opened: 'opened', locked: 'opened', merged: 'merged', closed: 'mr-closed' };
+const MR_GLYPHS = { opened: '○', merged: '✓', 'mr-closed': '✕' };
+const MR_STATE_WORDS = { opened: 'open', locked: 'open', merged: 'merged', closed: 'closed' };
+const SOURCE_BRANCH_MAX = 24;
+
+// Shortened from the end so the target branch after it stays visible.
+function shortBranch(branch) {
+  return branch.length > SOURCE_BRANCH_MAX ? `${branch.slice(0, SOURCE_BRANCH_MAX - 1)}…` : branch;
+}
+
+function describeMr(entry) {
+  const number = `!${entry.id}`;
+  const headline = entry.note || entry.title || number;
+  const headlineIsId = !entry.note && !entry.title;
+  const hasBranches = Boolean(entry.sourceBranch && entry.targetBranch);
+  const branches = hasBranches ? `${shortBranch(entry.sourceBranch)} → ${entry.targetBranch}` : '';
+
+  let subline = '';
+  if (hasBranches) subline = headlineIsId ? branches : `${number} · ${branches}`;
+  else if (!headlineIsId) subline = number;
+
+  let trailing = null;
+  if (entry.pipelineStatus) {
+    trailing = document.createElement('span');
+    trailing.className = 'pin-status pin-mr-pipeline';
+    trailing.dataset.status = entry.pipelineStatus;
+    trailing.title = `Pipeline ${entry.pipelineStatus}`;
+    trailing.textContent = STATUS_GLYPHS[entry.pipelineStatus] ?? '●';
+  }
+
+  const status = MR_STATUS[entry.state] ?? 'unknown';
+  const summary = [
+    MR_STATE_WORDS[entry.state],
+    entry.pipelineStatus && `pipeline ${entry.pipelineStatus}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return {
+    status,
+    glyph: MR_GLYPHS[status] ?? '●',
+    headline,
+    headlineIsId,
+    subline,
+    editSubline: hasBranches ? `${number} · ${branches}` : number,
+    tooltip: [
+      headline,
+      entry.note && entry.title,
+      hasBranches && `${entry.sourceBranch} → ${entry.targetBranch}`,
+      summary,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    trailing,
+    url: mrWebUrl(entry),
+  };
+}
+
+const mrsList = createPinnedList({
+  kind: 'mrs',
+  noun: 'MR',
+  idPrefix: '!',
+  section: pinnedMrs,
+  list: pinnedMrsList,
+  describeRow: describeMr,
+  navigate,
+  onRender: refreshPinButton,
+});
+
+const lists = { pipelines: pipelinesList, tickets: ticketsList, mrs: mrsList };
 
 async function hasGitLabAccess() {
   if (!base) return false;
@@ -377,7 +456,25 @@ async function fetchTicket(entry) {
   };
 }
 
-const FETCHERS = { pipelines: fetchPipeline, tickets: fetchTicket };
+async function fetchMr(entry) {
+  const response = await fetch(mrApiUrl(entry.base, entry.id), {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error(`GitLab returned ${response.status}`);
+  const raw = await response.json();
+  return {
+    base: entry.base,
+    id: entry.id,
+    title: raw.title,
+    state: raw.state,
+    sourceBranch: raw.source_branch,
+    targetBranch: raw.target_branch,
+    pipelineStatus: raw.head_pipeline?.status ?? null,
+    webUrl: raw.web_url,
+  };
+}
+
+const FETCHERS = { pipelines: fetchPipeline, tickets: fetchTicket, mrs: fetchMr };
 
 async function refreshPinned(kind) {
   const list = lists[kind];
@@ -402,6 +499,7 @@ async function refreshAllPinned() {
   ensurePipelineNoteScript(base);
   refreshPinned('pipelines');
   refreshPinned('tickets');
+  refreshPinned('mrs');
 }
 
 function refreshPinButton() {
@@ -412,7 +510,7 @@ function refreshPinButton() {
       .some((e) => e.base === pinnable.base && e.id === pinnable.id);
   pinSection.hidden = !pinnable || alreadyPinned;
   if (pinnable) {
-    const noun = pinnable.kind === 'tickets' ? 'ticket' : 'pipeline';
+    const noun = { pipelines: 'pipeline', tickets: 'ticket', mrs: 'MR' }[pinnable.kind];
     pinButton.textContent = `\u{1F4CC} Pin this ${noun}`;
   }
 }
@@ -516,8 +614,10 @@ async function checkActiveTab() {
 
   const pipeline = parsePipelineUrl(tab.url);
   const ticket = pipeline ? null : parseTicketUrl(tab.url);
+  const mr = pipeline || ticket ? null : parseMrUrl(tab.url);
   if (pipeline) pinnable = { kind: 'pipelines', ...pipeline };
   else if (ticket) pinnable = { kind: 'tickets', ...ticket };
+  else if (mr) pinnable = { kind: 'mrs', ...mr };
   refreshPinButton();
 
   try {
@@ -682,6 +782,7 @@ async function init() {
   historyInput.value = targetBranch;
   renderHistory(await getHistory());
 
+  mrsList.setEntries(await getPinned('mrs'));
   ticketsList.setEntries(await getPinned('tickets'));
   pipelinesList.setEntries(await getPinned('pipelines'));
   await checkActiveTab();

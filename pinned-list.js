@@ -10,7 +10,17 @@ import { reorderPinned, setPinnedNote, unpinItem } from './lib/storage.js';
  * `trailing` is an element for the row's right edge (a pipeline's duration) or null.
  * onRender(entries) runs after every render.
  */
-export function createPinnedList({ kind, noun, section, list, describeRow, navigate, onRender }) {
+// `idPrefix` is how the item's number is written: `#` for pipelines and tickets, `!` for MRs.
+export function createPinnedList({
+  kind,
+  noun,
+  idPrefix = '#',
+  section,
+  list,
+  describeRow,
+  navigate,
+  onRender,
+}) {
   let entries = [];
   let draggedIndex = null;
   // The row being edited, kept outside the DOM so list rebuilds cannot lose it:
@@ -101,7 +111,7 @@ export function createPinnedList({ kind, noun, section, list, describeRow, navig
     input.className = 'pin-note-input';
     input.maxLength = NOTE_MAX_LENGTH;
     input.placeholder = `What's this ${noun} for?`;
-    input.setAttribute('aria-label', `Note for ${noun} #${entry.id}`);
+    input.setAttribute('aria-label', `Note for ${noun} ${idPrefix}${entry.id}`);
     input.value = editing.draft;
 
     for (const type of ['input', 'select', 'keyup', 'click']) {

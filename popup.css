@@ -286,6 +286,16 @@ input[type="text"]:disabled {
 .pin-status[data-status="waiting_for_resource"] { color: #c17d10; }
 .pin-status[data-status="opened"] { color: #108548; }
 .pin-status[data-status="closed"] { color: #1f75cb; }
+/* MRs get their own tokens: a closed ticket is done (blue) but a closed MR was abandoned. */
+.pin-status[data-status="merged"] { color: #1f75cb; }
+.pin-status[data-status="mr-closed"] { color: #dd2b0e; }
+
+/* An MR's latest pipeline, in the column where pipeline rows show their duration. */
+.pin-mr-pipeline {
+  flex: none;
+  min-width: 40px;
+  text-align: right;
+}
 
 /* Hover actions sit over the duration instead of reserving their own column,
    so a note keeps the full row width at rest. Their background matches the hovered
@@ -309,7 +319,9 @@ input[type="text"]:disabled {
 }
 
 .pin-item:hover .pin-duration,
-.pin-item:focus-within .pin-duration {
+.pin-item:focus-within .pin-duration,
+.pin-item:hover .pin-mr-pipeline,
+.pin-item:focus-within .pin-mr-pipeline {
   visibility: hidden;
 }
 
