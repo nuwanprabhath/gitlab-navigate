@@ -263,6 +263,13 @@ input[type="text"]:disabled {
   white-space: nowrap;
 }
 
+/* When a subline has a tail that must stay fully visible (an MR's target branch), the
+   ref splits into a shrinking head and a fixed-width tail instead of ellipsizing both. */
+.pin-ref-split { display: flex; }
+.pin-ref-head { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* white-space: pre matters: a flex item drops leading whitespace, and the tail starts with a space. */
+.pin-ref-tail { flex: none; white-space: pre; }
+
 /* The min-width reserves room for the hover actions that sit on top of it. */
 .pin-duration {
   flex: none;

@@ -5,9 +5,11 @@ import { reorderPinned, setPinnedNote, unpinItem } from './lib/storage.js';
  * One pinned list: rendering, drag-to-reorder, ✎ note editing and ✕ unpin. Lists differ
  * only in what a row shows, which describeRow(entry) supplies:
  *
- *   { status, glyph, headline, headlineIsId, subline, editSubline, tooltip, trailing, url }
+ *   { status, glyph, headline, headlineIsId, subline, editSubline, sublineTail, tooltip, trailing, url }
  *
  * `trailing` is an element for the row's right edge (a pipeline's duration) or null.
+ * `sublineTail` is optional text appended after the subline that never shrinks (an MR's
+ * target branch), shown in both the nav row and the edit row.
  * onRender(entries) runs after every render.
  */
 // `idPrefix` is how the item's number is written: `#` for pipelines and tickets, `!` for MRs.
@@ -50,10 +52,22 @@ export function createPinnedList({
     return main;
   }
 
-  function pinSubline(text) {
+  function pinSubline(text, tail) {
     const sub = document.createElement('span');
-    sub.className = 'pin-ref';
-    sub.textContent = text;
+    if (!tail) {
+      sub.className = 'pin-ref';
+      sub.textContent = text;
+      return sub;
+    }
+
+    sub.className = 'pin-ref pin-ref-split';
+    const head = document.createElement('span');
+    head.className = 'pin-ref-head';
+    head.textContent = text;
+    const tailSpan = document.createElement('span');
+    tailSpan.className = 'pin-ref-tail';
+    tailSpan.textContent = tail;
+    sub.append(head, tailSpan);
     return sub;
   }
 
@@ -66,7 +80,7 @@ export function createPinnedList({
     nav.type = 'button';
     nav.className = 'pin-nav';
     nav.title = row.tooltip;
-    nav.append(statusGlyph(row), pinMain(headline, pinSubline(row.subline)));
+    nav.append(statusGlyph(row), pinMain(headline, pinSubline(row.subline, row.sublineTail)));
     if (row.trailing) nav.append(row.trailing);
     nav.addEventListener('click', () => navigate(row.url));
     return nav;
@@ -136,7 +150,7 @@ export function createPinnedList({
 
     const editor = document.createElement('div');
     editor.className = 'pin-edit';
-    editor.append(statusGlyph(row), pinMain(input, pinSubline(row.editSubline)));
+    editor.append(statusGlyph(row), pinMain(input, pinSubline(row.editSubline, row.sublineTail)));
     return editor;
   }
 

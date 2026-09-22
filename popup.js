@@ -317,22 +317,15 @@ function mrWebUrl(entry) {
 const MR_STATUS = { opened: 'opened', locked: 'opened', merged: 'merged', closed: 'mr-closed' };
 const MR_GLYPHS = { opened: '○', merged: '✓', 'mr-closed': '✕' };
 const MR_STATE_WORDS = { opened: 'open', locked: 'open', merged: 'merged', closed: 'closed' };
-const SOURCE_BRANCH_MAX = 24;
-
-// Shortened from the end so the target branch after it stays visible.
-function shortBranch(branch) {
-  return branch.length > SOURCE_BRANCH_MAX ? `${branch.slice(0, SOURCE_BRANCH_MAX - 1)}…` : branch;
-}
 
 function describeMr(entry) {
   const number = `!${entry.id}`;
   const headline = entry.note || entry.title || number;
   const headlineIsId = !entry.note && !entry.title;
   const hasBranches = Boolean(entry.sourceBranch && entry.targetBranch);
-  const branches = hasBranches ? `${shortBranch(entry.sourceBranch)} → ${entry.targetBranch}` : '';
 
   let subline = '';
-  if (hasBranches) subline = headlineIsId ? branches : `${number} · ${branches}`;
+  if (hasBranches) subline = headlineIsId ? entry.sourceBranch : `${number} · ${entry.sourceBranch}`;
   else if (!headlineIsId) subline = number;
 
   let trailing = null;
@@ -358,7 +351,8 @@ function describeMr(entry) {
     headline,
     headlineIsId,
     subline,
-    editSubline: hasBranches ? `${number} · ${branches}` : number,
+    editSubline: hasBranches ? `${number} · ${entry.sourceBranch}` : number,
+    sublineTail: hasBranches ? ` → ${entry.targetBranch}` : null,
     tooltip: [
       headline,
       entry.note && entry.title,
