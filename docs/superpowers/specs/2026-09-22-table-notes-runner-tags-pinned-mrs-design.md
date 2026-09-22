@@ -200,7 +200,9 @@ PINNED MRS
   `merged · pipeline success`, omitting unknown parts.
 - Click opens `webUrl`, else `${base}/-/merge_requests/<iid>`.
 - Drag-to-reorder, ✎ notes (Enter/blur save, Esc cancels, empty removes,
-  `NOTE_MAX_LENGTH` 80) and ✕ unpin behave as in the other lists.
+  `NOTE_MAX_LENGTH` 80) and ✕ unpin behave as in the other lists. The note box's
+  aria-label reads `Note for MR !<iid>`: `createPinnedList` gains an optional
+  `idPrefix` (default `#`), which MRs set to `!`.
 - Title, state, branches and pipeline status refresh on each popup open when access is
   granted; cached values render first.
 
@@ -224,6 +226,7 @@ for GETs, as for pipelines and tickets.
 |------|--------|
 | `lib/parse.js` | + `parseMrUrl(url) → {base, id} \| null`; + `mrApiUrl(base, id)`; + `parseTagList(text) → string[]` |
 | `lib/storage.js` | + list kind `mrs` → `pinnedMrs`; + `getIgnoredJobTags()` / `setIgnoredJobTags(tags)` |
+| `pinned-list.js` | + optional `idPrefix` (default `#`) for the note box's aria-label |
 | `popup.js` | `describeMr`, `fetchMr`, third list instance, MR branch in `checkActiveTab` and the pin button; Ignore job tags setting; `ensurePipelineNoteScript` compares `matches` and `js` |
 | `popup.html` / `popup.css` | Pinned MRs section; settings field; `merged` / `mr-closed` colours; `.pin-mr-pipeline` |
 | `content/shared.js` (new) | helpers above |
