@@ -8,11 +8,14 @@ import {
   formatDuration,
   inProgressTicketsUrl,
   mineMrUrl,
+  mrApiUrl,
   myPipelinesUrl,
   normalizeBase,
   normalizeNote,
   originPattern,
+  parseMrUrl,
   parsePipelineUrl,
+  parseTagList,
   parseTicketUrl,
   pipelineApiUrl,
   pipelineElapsedSeconds,
@@ -669,5 +672,92 @@ describe('ticketApiUrl', () => {
 
   test('rejects a missing base URL', () => {
     expect(() => ticketApiUrl('', '7')).toThrow(ParseError);
+  });
+});
+
+describe('parseMrUrl', () => {
+  test('recognises an MR page', () => {
+    expect(parseMrUrl(`${BASE}/-/merge_requests/1303`)).toEqual({ base: BASE, id: '1303' });
+  });
+
+  test('recognises the diffs tab', () => {
+    expect(parseMrUrl(`${BASE}/-/merge_requests/1303/diffs`)).toEqual({ base: BASE, id: '1303' });
+  });
+
+  test('recognises the commits tab', () => {
+    expect(parseMrUrl(`${BASE}/-/merge_requests/1303/commits`)).toEqual({
+      base: BASE,
+      id: '1303',
+    });
+  });
+
+  test('recognises the pipelines tab', () => {
+    expect(parseMrUrl(`${BASE}/-/merge_requests/1303/pipelines`)).toEqual({
+      base: BASE,
+      id: '1303',
+    });
+  });
+
+  test('ignores a trailing slash, query and hash', () => {
+    expect(parseMrUrl(`${BASE}/-/merge_requests/1303/?tab=overview#note_42`)).toEqual({
+      base: BASE,
+      id: '1303',
+    });
+  });
+
+  test('handles a self-hosted instance with a nested group', () => {
+    expect(parseMrUrl('https://git.example.org/a/b/c/-/merge_requests/7')).toEqual({
+      base: 'https://git.example.org/a/b/c',
+      id: '7',
+    });
+  });
+
+  test('returns null for the new MR page', () => {
+    expect(
+      parseMrUrl(`${BASE}/-/merge_requests/new?merge_request%5Bsource_branch%5D=x`),
+    ).toBeNull();
+  });
+
+  test('returns null for the MR list', () => {
+    expect(parseMrUrl(`${BASE}/-/merge_requests`)).toBeNull();
+  });
+
+  test('returns null for a non-http URL', () => {
+    expect(parseMrUrl('chrome://extensions')).toBeNull();
+  });
+});
+
+describe('mrApiUrl', () => {
+  test('URL-encodes the project path', () => {
+    expect(mrApiUrl(BASE, '1303')).toBe(
+      'https://gitlab.com/api/v4/projects/ternandsparrow%2Fparatoo-fdcp/merge_requests/1303',
+    );
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => mrApiUrl('', '1303')).toThrow(ParseError);
+  });
+});
+
+describe('parseTagList', () => {
+  test('splits on commas', () => {
+    expect(parseTagList('cypress,docker')).toEqual(['cypress', 'docker']);
+  });
+
+  test('splits on whitespace', () => {
+    expect(parseTagList('cypress docker\tgpu')).toEqual(['cypress', 'docker', 'gpu']);
+  });
+
+  test('drops empty entries', () => {
+    expect(parseTagList(' , cypress,, ')).toEqual(['cypress']);
+  });
+
+  test('drops case-insensitive duplicates, keeping the first spelling', () => {
+    expect(parseTagList('Cypress cypress CYPRESS docker')).toEqual(['Cypress', 'docker']);
+  });
+
+  test('returns an empty list for empty input', () => {
+    expect(parseTagList('')).toEqual([]);
+    expect(parseTagList(undefined)).toEqual([]);
   });
 });
