@@ -11,6 +11,7 @@ import {
   normalizeBase,
   originPattern,
   parsePipelineUrl,
+  parseTagList,
   parseTicketUrl,
   pipelineApiUrl,
   pipelineElapsedSeconds,
@@ -22,6 +23,7 @@ import {
 import {
   getBase,
   getHistory,
+  getIgnoredJobTags,
   getTargetBranch,
   getUsername,
   getPinned,
@@ -30,6 +32,7 @@ import {
   removeHistory,
   updatePinned,
   setBase,
+  setIgnoredJobTags,
   setTargetBranch,
   setUsername,
 } from './lib/storage.js';
@@ -56,6 +59,9 @@ const targetBranchError = document.getElementById('target-branch-error');
 const usernameInput = document.getElementById('username-input');
 const usernameSave = document.getElementById('username-save');
 const usernameError = document.getElementById('username-error');
+const ignoredTagsInput = document.getElementById('ignored-tags-input');
+const ignoredTagsSave = document.getElementById('ignored-tags-save');
+const ignoredTagsError = document.getElementById('ignored-tags-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
 const ticketInput = document.getElementById('ticket');
 const historyInput = document.getElementById('history');
@@ -84,6 +90,7 @@ const recentList = document.getElementById('recent-list');
 let base = '';
 let targetBranch = '';
 let username = '';
+let ignoredJobTags = [];
 let activeTabId = null;
 let swappedUrl = '';
 // What the active tab shows, if it can be pinned: { kind, base, id }.
@@ -113,6 +120,7 @@ function openSettings() {
   baseInput.value = base;
   targetBranchInput.value = targetBranch;
   usernameInput.value = username;
+  ignoredTagsInput.value = ignoredJobTags.join(', ');
   baseInput.focus();
   baseInput.select();
 }
@@ -122,6 +130,7 @@ function closeSettings() {
   clearError(baseError);
   clearError(targetBranchError);
   clearError(usernameError);
+  clearError(ignoredTagsError);
 }
 
 function navigate(url) {
@@ -560,6 +569,21 @@ async function saveUsername() {
   await setUsername(username);
 }
 
+// An empty box is a valid choice: it stops ignoring anything.
+async function saveIgnoredTags() {
+  clearError(ignoredTagsError);
+
+  const tags = parseTagList(ignoredTagsInput.value);
+  try {
+    await setIgnoredJobTags(tags);
+  } catch {
+    showError(ignoredTagsError, 'Could not save; try again');
+    return;
+  }
+  ignoredJobTags = tags;
+  ignoredTagsInput.value = tags.join(', ');
+}
+
 function goToBaseList(buildListUrl) {
   if (!base) {
     openSettings();
@@ -642,10 +666,18 @@ usernameInput.addEventListener('keydown', (event) => {
   saveUsername();
 });
 
+ignoredTagsSave.addEventListener('click', saveIgnoredTags);
+ignoredTagsInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  saveIgnoredTags();
+});
+
 async function init() {
   base = await getBase();
   targetBranch = await getTargetBranch();
   username = await getUsername();
+  ignoredJobTags = await getIgnoredJobTags();
   mrTo.value = targetBranch;
   historyInput.value = targetBranch;
   renderHistory(await getHistory());
