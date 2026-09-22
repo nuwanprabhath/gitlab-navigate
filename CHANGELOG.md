@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.20.0
+
+- **Notes in the pipelines table.** A pinned pipeline's note now also appears in
+  GitLab's pipelines list, after the pipeline number, so a page of pipelines reads at a
+  glance. It keeps up as GitLab refreshes the table.
+- **Runner badges.** Pipelines in the list and on their own page get a grey badge naming
+  the runner they target (`perentie-runner`), next to GitLab's `latest` / `branch`
+  badges. GitLab doesn't keep pipeline inputs, so the badge comes from the jobs' runner
+  tags: the tags every tagged job shares. Tags that aren't runners, such as `cypress`,
+  can be listed in the new **Ignore job tags** setting. Each pipeline's tags are fetched
+  once with your GitLab login and remembered; no token needed.
+- **Pinned MRs.** On an MR page the popup offers **Pin this MR**. Pinned MRs show open
+  (○) / merged (✓) / closed (✕), the title, `!iid · source → target`, and the latest
+  pipeline's status, refreshed each time the popup opens. Notes, drag-to-reorder and
+  unpin work as for pipelines and tickets. Up to 10 MRs.
+- The page script is now `content/shared.js`, `content/pipeline-notes.js` and
+  `content/runner-tags.js`, and runs on the pipelines list as well as pipeline pages.
+  Open the popup once after updating to switch it over.
+
 ## 0.19.1
 
 - **Popup order.** Pinned pipelines now come before Pinned tickets, and Create MR (with

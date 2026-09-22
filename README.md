@@ -5,7 +5,7 @@ popup, paste a ticket number, MR number, commit hash, or branch name, press Ente
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/popup-dark.png">
-  <img src="docs/popup-light.png" alt="The GitLab Navigate popup: MRs, Tickets and Pipelines button rows, a two-column Go to grid, pinned pipelines and tickets, the Create MR boxes, and a Recent list." width="330">
+  <img src="docs/popup-light.png" alt="The GitLab Navigate popup: MRs, Tickets and Pipelines button rows, a two-column Go to grid, pinned pipelines, tickets and MRs, the Create MR boxes, and a Recent list." width="330">
 </picture>
 
 The screenshots are generated from the real markup by `./tools/screenshot.sh` — see
@@ -140,13 +140,14 @@ skip); later, hover the row and click ✎. Enter or clicking away saves, Esc can
 saving an empty note removes it. Notes are stored with the pin on this machine and go
 away when you unpin.
 
-**On the pipeline page.** A pinned pipeline's note also appears in GitLab itself, after
-the big pipeline number (`#2866034605  📌 Species list old issue v2`), so you can tell
-pipelines apart without opening the popup. It updates as soon as you edit the note and
-disappears when you unpin. A small script does this; it runs only on your GitLab site's
-`…/-/pipelines/…` pages and is switched on by the popup once you've granted GitLab
-access. After updating the extension, open the popup once for notes to reappear on
-pipeline pages. It covers the GitLab site in your repo URL setting; pipelines pinned
+**On GitLab.** A pinned pipeline's note also appears in GitLab itself: after the big
+number on the pipeline's page (`#2866034605  📌 Species list old issue v2`) and after
+its number in the pipelines list, so you can tell pipelines apart without opening the
+popup. It updates as soon as you edit the note, keeps up as GitLab refreshes the list,
+and disappears when you unpin. A small script does this; it runs only on your GitLab
+site's pipeline pages (`…/-/pipelines…`) and is switched on by the popup once you've
+granted GitLab access. After updating the extension, open the popup once for notes to
+reappear on GitLab. It covers the GitLab site in your repo URL setting; pipelines pinned
 from a different GitLab site show their note in the popup only.
 
 Status is refreshed each time the popup opens. Cached values appear instantly and are
@@ -154,8 +155,9 @@ replaced when the refresh lands, so the list still reads sensibly offline.
 
 ### How it reads pipeline status
 
-Pinned pipelines and pinned tickets are the only features that talk to the GitLab API
-(`/api/v4/projects/:path/pipelines/:id` and `/api/v4/projects/:path/issues/:id`). They
+The pinned lists and the runner badges are the only features that talk to the GitLab
+API: the popup reads `/api/v4/projects/:path/pipelines/:id`, `…/issues/:id` and
+`…/merge_requests/:iid`, and the pipeline-page script reads `…/pipelines/:id/jobs`. They
 authenticate with the `_gitlab_session` cookie your browser already has, so there is
 **no token to create, and none is stored**.
 
@@ -166,8 +168,8 @@ of the extension keeps working without it. If you decline, pinning still records
 pipeline and clicking still opens it; the status and branch just stay blank until you
 grant access.
 
-The same access lets the popup switch on the pipeline-page note script, which adds the
-`scripting` permission (Chrome shows no warning for it). If you remove the access in
+The same access lets the popup switch on the pipeline-page script (notes and runner
+badges), which adds the `scripting` permission (Chrome shows no warning for it). If you remove the access in
 your browser settings, the browser stops running that script too.
 
 ## Pinned tickets
@@ -182,6 +184,15 @@ pipelines. Up to 10 tickets.
 The title comes through the same GitLab access pinned pipelines use (see [How it reads
 pipeline status](#how-it-reads-pipeline-status)). GitLab's work-item Status field ("In
 progress") is only available through its GraphQL API, so it isn't shown.
+
+## Pinned MRs
+
+Open a merge request (`…/-/merge_requests/1303`, or its Changes, Commits or Pipelines
+tab) and the popup shows **Pin this MR**. Each pinned MR shows whether it's open (○),
+merged (✓) or closed (✕), its title, `!1303 · source → target`, and on the right the
+status of its latest pipeline. Long source branches are shortened so the target stays
+visible; hover for the full names. Notes, drag-to-reorder and unpin work as for
+pipelines and tickets. Up to 10 MRs.
 
 ## Create MR
 
@@ -203,6 +214,23 @@ The last 8 places you visited are listed under **Recent** and are one click away
 Hover (or tab to) an entry to reveal a 🗑 button that removes just that one. The type
 badge sits in a fixed-width column so every value lines up at the same left edge.
 
+## Runner badges
+
+On your GitLab site's pipelines list and pipeline pages, each pipeline gets a grey badge
+naming the runner it targets, such as `perentie-runner`, next to GitLab's own `latest` /
+`branch` badges.
+
+GitLab doesn't keep the inputs a pipeline was started with, so a `RUNNER_TAG` input
+can't be read back, but it does record each job's runner tags. The badge shows the tags
+that every tagged job in the pipeline carries; untagged jobs, which run on shared
+runners, don't count. If your jobs also share a tag that isn't a runner, such as
+`cypress`, list it under **Ignore job tags** in settings and it's dropped.
+
+The page script reads the jobs with your existing GitLab login
+(`/api/v4/projects/:path/pipelines/:id/jobs`, first 100 jobs), so there's no token to
+set up. A pipeline's tags never change, so each one is fetched once and remembered (the
+newest 500 are kept). Child pipelines aren't followed.
+
 ## Swap branches on a "new merge request" page
 
 If GitLab's active tab is already on a `.../-/merge_requests/new?...` page (typically
@@ -216,7 +244,7 @@ can't break when GitLab changes their UI.
 
 ## Settings
 
-The gear button holds three fields:
+The gear button holds four fields:
 
 - **GitLab repo URL** — paste any page from the repo and everything from `/-/` onward
   is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
@@ -224,8 +252,11 @@ The gear button holds three fields:
 - **Default MR target branch** — used by the Create MR box, e.g. `dev/1.0.11`.
 - **Your GitLab username** — used by the MRs, Tickets, and Pipelines > Mine buttons,
   e.g. `nuwan-tern`.
+- **Ignore job tags** — job tags that aren't runners, left out of the
+  [runner badges](#runner-badges), e.g. `cypress`. Separate several with commas or
+  spaces; leave it empty to ignore nothing.
 
-All three are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
+All four are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
 Firefox the same storage follows your Firefox Account; without one signed in it behaves
 as local storage and stays on that machine. Recent history is kept in
 `chrome.storage.local`.

@@ -125,6 +125,40 @@ html = (html
         .replace('<section id="pinned-tickets" class="recent" hidden>', '<section id="pinned-tickets" class="recent">')
         .replace('<ul id="pinned-tickets-list"></ul>', f'<ul id="pinned-tickets-list">{ticket_items}</ul>'))
 
+mrs = [
+    ('opened', '&#x25CB;', '1310', 'Camera trap variations', None,
+     '2319-camera-trapping-module-variations', 'dev/1.0.12', 'running', '&#x25CF;'),
+    ('merged', '&#x2713;', '1303', 'fix(test): dropdown harness carried subjects', 'Dropdown fix',
+     'fix/cypress-dropdown-and-spec-bundle-node-env', 'dev/1.0.13', 'success', '&#x2713;'),
+]
+
+
+def mr_item(status, glyph, iid, title, note, source, target, pipeline, pipeline_glyph):
+    # Mirrors describeMr() in popup.js and buildNavButton()/pinSubline()/buildActions() in
+    # pinned-list.js: the target is a tail that never shrinks, so only the source ellipsizes.
+    headline = note or title
+    return (
+        f'<li class="pin-item">'
+        f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
+        f'<button type="button" class="pin-nav">'
+        f'<span class="pin-status" data-status="{status}">{glyph}</span>'
+        f'<span class="pin-main"><span class="pin-note">{headline}</span>'
+        f'<span class="pin-ref pin-ref-split"><span class="pin-ref-head">!{iid} &#xB7; {source}</span>'
+        f'<span class="pin-ref-tail"> &#x2192; {target}</span></span></span>'
+        f'<span class="pin-status pin-mr-pipeline" data-status="{pipeline}">{pipeline_glyph}</span>'
+        f'</button>'
+        f'<span class="pin-actions">'
+        f'<button type="button" class="pin-action pin-note-edit" aria-label="Edit note">&#x270E;</button>'
+        f'<button type="button" class="pin-action pin-remove" aria-label="Unpin this MR">&#x2715;</button>'
+        f'</span>'
+        f'</li>')
+
+
+mr_items = '\n'.join(mr_item(*m) for m in mrs)
+html = (html
+        .replace('<section id="pinned-mrs" class="recent" hidden>', '<section id="pinned-mrs" class="recent">')
+        .replace('<ul id="pinned-mrs-list"></ul>', f'<ul id="pinned-mrs-list">{mr_items}</ul>'))
+
 light = re.search(r'^:root\s*\{([^}]*)\}', css, re.M)
 dark = re.search(r'@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}', css)
 if not (light and dark):

@@ -38,7 +38,9 @@ gitlab-navigate/
   popup.css
   popup.js          UI wiring: events, rendering, storage calls
   pinned-list.js    one pinned list: rows, drag-to-reorder, note editing
-  content/pipeline-note.js  note beside the number on GitLab pipeline pages
+  content/shared.js          helpers shared by the GitLab page scripts
+  content/pipeline-notes.js  pinned notes on GitLab pipeline pages and the pipelines table
+  content/runner-tags.js     runner badges on GitLab pipeline pages and the pipelines table
   lib/parse.js      pure functions: reference -> URL
   lib/storage.js    chrome.storage read/write helpers
   icons/            16/32/48/128 px PNGs
@@ -46,11 +48,11 @@ gitlab-navigate/
   README.md
 ```
 
-`lib/parse.js` has no Chrome dependencies and is the only unit-tested module.
-`popup.js`, `pinned-list.js` and `content/pipeline-note.js` hold all DOM and Chrome API
-interaction. `lib/storage.js` isolates the storage keys so nothing else needs to know
-them — except the page-note script, which cannot import modules and reads
-`pinnedPipelines` directly.
+`lib/parse.js` and the pure helpers in `content/shared.js` have no Chrome dependencies
+and are the unit-tested code. `popup.js`, `pinned-list.js` and the other page scripts
+hold all DOM and Chrome API interaction. `lib/storage.js` isolates the storage keys so
+nothing else needs to know them — except the page scripts, which cannot import modules
+and read `pinnedPipelines`, `runnerTags` and `ignoredJobTags` directly.
 
 Modules load as ES modules (`<script type="module" src="popup.js">`), which MV3
 popups support.
@@ -62,8 +64,9 @@ popups support.
 Fixed-width popup (~320px). Top to bottom:
 
 1. Header row: title and the gear button (toggles the settings row).
-2. Settings row (hidden by default): base repo URL, default MR target branch, and
-   your GitLab username, each its own labelled input + Save button + error line.
+2. Settings row (hidden by default): base repo URL, default MR target branch, your
+   GitLab username, and job tags to ignore for runner badges, each its own labelled
+   input + Save button + error line.
 3. Four labelled `.group` sections, each with an `<h2>`:
    - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
@@ -77,9 +80,10 @@ Fixed-width popup (~320px). Top to bottom:
    would have displaced. Field labels are sentence case so they do not read as section
    headings, which are uppercase. In a grid row the error grows its own cell only,
    leaving its neighbour top-aligned.
-4. The pin button — "Pin this pipeline" or "Pin this ticket" by page type, hidden
-   unless the active tab is a pipeline or ticket page that is not already pinned —
-   then the "Pinned pipelines" list, then the "Pinned tickets" list.
+4. The pin button — "Pin this pipeline", "Pin this ticket" or "Pin this MR" by page
+   type, hidden unless the active tab is a pipeline, ticket or MR page that is not
+   already pinned — then the "Pinned pipelines", "Pinned tickets" and "Pinned MRs"
+   lists.
 5. **Create MR**, a `.group` that also carries `.divided`, giving it the same top rule
    as the lists around it: a `.from-to` grid with the From and To boxes stacked in
    column one and a ⇅ swap button spanning both rows in column two.
@@ -226,6 +230,7 @@ GitLab changes their page markup, and it stays testable without a browser.
 getBase() / setBase(url)                       // chrome.storage.sync, key "baseUrl"
 getTargetBranch() / setTargetBranch(branch)     // chrome.storage.sync, key "targetBranch"
 getUsername() / setUsername(username)          // chrome.storage.sync, key "username"
+getIgnoredJobTags() / setIgnoredJobTags(tags)  // chrome.storage.sync, key "ignoredJobTags"
 getHistory() / pushHistory(e)                   // chrome.storage.local, key "history"
 removeHistory(url)                             // chrome.storage.local, key "history"
 ```
@@ -242,7 +247,7 @@ fresh empty bucket and the settings look "cleared". Pinning the ID with a `key` 
 storage stable across reinstalls, folder moves, and machines. No code path ever calls
 `chrome.storage.*.clear()` or `.remove()`; only the named keys above are written.
 
-Base URL, target branch, and username all live in `sync` so they follow the user
+Base URL, target branch, username and ignored job tags all live in `sync` so they follow the user
 across machines; history lives in `local` because it is machine-specific noise.
 
 ### manifest.json
@@ -251,7 +256,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.19.1",
+  "version": "0.20.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab", "scripting"],
   "optional_host_permissions": ["*://*/*"],
@@ -333,6 +338,15 @@ origin's `…/-/pipelines/…` pages, appends a pinned pipeline's note to the pa
 and keeps it current via `MutationObserver` and `storage.onChanged`. Full design:
 `2026-09-21-pinned-tickets-and-page-notes-design.md`.
 
+**Table notes, runner tags and pinned MRs.** MRs are a third pinned list (`pinnedMrs`)
+whose rows show state, `!iid · source → target` and the head pipeline's status. The
+registered page script is now three files — `content/shared.js`,
+`content/pipeline-notes.js` and `content/runner-tags.js` — matching `…/-/pipelines*`, so
+it also covers the pipelines list. Notes are appended inside each pinned row's pipeline
+link, and each pipeline gets a runner badge built from the tags every tagged job shares,
+minus `ignoredJobTags`. The tags come from the jobs API and are cached in `runnerTags`.
+Full design: `2026-09-22-table-notes-runner-tags-pinned-mrs-design.md`.
+
 ## Data Flow
 
 **On open:** `popup.js` reads the base URL, target branch, username, and history. If
@@ -405,7 +419,9 @@ exception message.
 
 ## Testing
 
-`bun test` over `test/parse.test.js`, covering `lib/parse.js`:
+`bun test` over `test/content-shared.test.js`, covering the pure helpers in
+`content/shared.js` (pipeline URLs from links, the shared-job-tags rule), and
+`test/parse.test.js`, covering `lib/parse.js`:
 
 - each type's happy path, including the three URLs from the original request
 - `#2795` and `!1122` prefix stripping
