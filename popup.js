@@ -306,29 +306,34 @@ async function hasGitLabAccess() {
   }
 }
 
-const PAGE_NOTE_SCRIPT = {
+// Keeps its 0.19 id so existing installs update in place instead of gaining a second
+// registration.
+const PIPELINE_PAGE_SCRIPT = {
   id: 'pipeline-note',
-  js: ['content/pipeline-note.js'],
+  js: ['content/shared.js', 'content/pipeline-notes.js'],
   runAt: 'document_idle',
   persistAcrossSessions: true,
 };
 
-// Keeps the pipeline-page note script registered for the GitLab site in `forBase`. Runs
-// on every popup open because browsers clear registered scripts when the extension
-// updates, and the repo URL may have moved to another GitLab site.
+const sameList = (a, b) => JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+
+// Keeps the pipeline page scripts registered for the GitLab site in `forBase`. Runs on
+// every popup open because browsers clear registered scripts when the extension
+// updates, the repo URL may have moved to another GitLab site, and an update may have
+// changed the script files.
 async function ensurePipelineNoteScript(forBase) {
   try {
     const script = {
-      ...PAGE_NOTE_SCRIPT,
-      matches: [`${new URL(forBase).origin}/*/-/pipelines/*`],
+      ...PIPELINE_PAGE_SCRIPT,
+      matches: [`${new URL(forBase).origin}/*/-/pipelines*`],
     };
     const [existing] = await chrome.scripting.getRegisteredContentScripts({ ids: [script.id] });
     if (!existing) await chrome.scripting.registerContentScripts([script]);
-    else if (existing.matches?.[0] !== script.matches[0]) {
+    else if (!sameList(existing.matches, script.matches) || !sameList(existing.js, script.js)) {
       await chrome.scripting.updateContentScripts([script]);
     }
   } catch {
-    // Only the page note is lost; the popup itself is unaffected.
+    // Only the page notes and badges are lost; the popup itself is unaffected.
   }
 }
 
