@@ -10,7 +10,8 @@
   badges. GitLab doesn't keep pipeline inputs, so the badge comes from the jobs' runner
   tags: the tags every tagged job shares. Tags that aren't runners, such as `cypress`,
   can be listed in the new **Ignore job tags** setting. Each pipeline's tags are fetched
-  once with your GitLab login and remembered; no token needed.
+  once with your GitLab login and remembered; no token needed. Needs the GitLab access
+  the popup asks for when you first pin something.
 - **Pinned MRs.** On an MR page the popup offers **Pin this MR**. Pinned MRs show open
   (○) / merged (✓) / closed (✕), the title, `!iid · source → target`, and the latest
   pipeline's status, refreshed each time the popup opens. Notes, drag-to-reorder and

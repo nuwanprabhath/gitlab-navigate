@@ -12,12 +12,15 @@
   const CACHE_LIMIT = 500;
   const MAX_IN_FLIGHT = 4;
 
-  const isPlainObject = (value) =>
-    Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  // Stored as an ordered array of [pipeline url, tags] pairs, oldest first, rather than an
+  // object: chrome.storage returns object keys sorted alphabetically (Firefox keeps
+  // insertion order), which would break newest-500 eviction.
+  const isValidPair = (pair) =>
+    Array.isArray(pair) && typeof pair[0] === 'string' && Array.isArray(pair[1]);
 
   // Pipeline URL -> the tags every tagged job shares, before the ignore list, so a
   // settings change applies without refetching.
-  let cache = {};
+  let cache = new Map();
   let ignored = new Set();
   let ready = false;
   const requested = new Set(); // fetched, or being fetched, during this page load
@@ -30,7 +33,7 @@
   }
 
   function visibleTags(url) {
-    return (cache[url] ?? []).filter((tag) => !ignored.has(tag.toLowerCase()));
+    return (cache.get(url) ?? []).filter((tag) => !ignored.has(tag.toLowerCase()));
   }
 
   function badge(url, tag) {
@@ -80,7 +83,7 @@
   }
 
   function request(pipeline) {
-    if (pipeline.url in cache || requested.has(pipeline.url)) return;
+    if (cache.has(pipeline.url) || requested.has(pipeline.url)) return;
     requested.add(pipeline.url);
     queue.push(pipeline);
     pump();
@@ -119,18 +122,14 @@
   // A pipeline's tags never change once it exists, so they are kept across page loads.
   // Writes are chained so this page's own fetches cannot overwrite each other's entries.
   function remember(url, tags) {
-    cache[url] = tags;
+    cache.set(url, tags);
     writing = writing.then(async () => {
       try {
         const { [CACHE_KEY]: stored } = await chrome.storage.local.get(CACHE_KEY);
-        const next = isPlainObject(stored) ? { ...stored } : {};
-        delete next[url];
-        next[url] = tags;
-        const keys = Object.keys(next);
-        for (const key of keys.slice(0, Math.max(0, keys.length - CACHE_LIMIT))) {
-          delete next[key];
-        }
-        await chrome.storage.local.set({ [CACHE_KEY]: next });
+        const next = (Array.isArray(stored) ? stored : [])
+          .filter((pair) => isValidPair(pair) && pair[0] !== url);
+        next.push([url, tags]);
+        await chrome.storage.local.set({ [CACHE_KEY]: next.slice(-CACHE_LIMIT) });
       } catch {
         // Orphaned after an extension update, or storage failed; the badge still shows.
       }
@@ -143,7 +142,9 @@
         chrome.storage.local.get(CACHE_KEY),
         chrome.storage.sync.get('ignoredJobTags'),
       ]);
-      cache = isPlainObject(stored) ? { ...stored } : {};
+      cache = new Map(
+        (Array.isArray(stored) ? stored : []).filter(isValidPair),
+      );
       setIgnored(ignoredJobTags);
     } catch {
       // The extension was reloaded or updated; this copy of the script is orphaned.

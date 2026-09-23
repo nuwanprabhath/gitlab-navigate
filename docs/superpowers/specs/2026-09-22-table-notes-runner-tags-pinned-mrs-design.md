@@ -131,14 +131,16 @@ case-insensitively). Nothing left, or no tagged job → no badge.
 
 ### Cache
 
-`chrome.storage.local` key `runnerTags`: `{ [pipeline url]: string[] }` holding
-`sharedJobTags` output **before** the ignore list, so changing the setting applies
-without refetching.
+`chrome.storage.local` key `runnerTags`: an array of `[pipeline url, string[]]` pairs,
+oldest first, holding `sharedJobTags` output **before** the ignore list, so changing the
+setting applies without refetching. An array, not an object, because Chrome returns
+object keys sorted alphabetically (Firefox keeps insertion order), which would break
+newest-500 eviction.
 
 - Written only when the jobs list is non-empty; a pipeline whose jobs have no tags
   caches `[]`.
-- Newest 500 entries kept: a write deletes and re-adds its key, then drops the oldest
-  keys beyond 500.
+- Newest 500 entries kept: a write drops that url's old pair, appends the new one, then
+  keeps only the last 500 pairs.
 - Tags never change after creation, so revisits cost no requests. Two tabs writing at
   once can lose an entry; it is simply fetched again later.
 - Read failures (orphaned script after an extension update) are caught; the script then
@@ -272,6 +274,8 @@ for GETs, as for pipelines and tickets.
   a reload.
 - If GitLab renames the test ids, notes and badges silently stop appearing; if it renames
   the badge classes, the badge shows as plain text.
+- Runner badges need GitLab access, which the popup asks for on the first pin; without
+  any pin the page script is never registered.
 
 ## Release
 

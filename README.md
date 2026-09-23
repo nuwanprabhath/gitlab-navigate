@@ -169,8 +169,8 @@ pipeline and clicking still opens it; the status and branch just stay blank unti
 grant access.
 
 The same access lets the popup switch on the pipeline-page script (notes and runner
-badges), which adds the `scripting` permission (Chrome shows no warning for it). If you remove the access in
-your browser settings, the browser stops running that script too.
+badges), which adds the `scripting` permission (Chrome shows no warning for it). If you
+remove the access in your browser settings, the browser stops running that script too.
 
 ## Pinned tickets
 
@@ -229,7 +229,9 @@ runners, don't count. If your jobs also share a tag that isn't a runner, such as
 The page script reads the jobs with your existing GitLab login
 (`/api/v4/projects/:path/pipelines/:id/jobs`, first 100 jobs), so there's no token to
 set up. A pipeline's tags never change, so each one is fetched once and remembered (the
-newest 500 are kept). Child pipelines aren't followed.
+newest 500 are kept). Child pipelines aren't followed. Badges need the GitLab access the
+popup asks for the first time you pin a pipeline, ticket or MR; until then the page
+script isn't switched on.
 
 ## Swap branches on a "new merge request" page
 
