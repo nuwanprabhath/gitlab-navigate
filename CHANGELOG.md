@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.1
+
+- Pinned notes on GitLab pages are now **bold amber** instead of subtle grey, so a
+  pinned pipeline stands out at a glance in a busy pipelines list. The colour follows
+  GitLab's light and dark themes.
+
 ## 0.20.0
 
 - **Notes in the pipelines table.** A pinned pipeline's note now also appears in

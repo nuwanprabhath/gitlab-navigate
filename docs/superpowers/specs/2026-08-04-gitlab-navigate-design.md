@@ -256,7 +256,7 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "key": "<base64 SPKI public key — pins the extension ID>",
   "permissions": ["storage", "activeTab", "scripting"],
   "optional_host_permissions": ["*://*/*"],

@@ -142,8 +142,8 @@ away when you unpin.
 
 **On GitLab.** A pinned pipeline's note also appears in GitLab itself: after the big
 number on the pipeline's page (`#2866034605  📌 Species list old issue v2`) and after
-its number in the pipelines list, so you can tell pipelines apart without opening the
-popup. It updates as soon as you edit the note, keeps up as GitLab refreshes the list,
+its number in the pipelines list, in bold amber so it catches the eye, so you can tell
+pipelines apart without opening the popup. It updates as soon as you edit the note, keeps up as GitLab refreshes the list,
 and disappears when you unpin. A small script does this; it runs only on your GitLab
 site's pipeline pages (`…/-/pipelines…`) and is switched on by the popup once you've
 granted GitLab access. After updating the extension, open the popup once for notes to

@@ -73,8 +73,12 @@ non-empty note, a span is appended **inside** the link:
 Merge branch 'fix/minio-quay-stopgap' i…
 ```
 
-- Text `📌 ` + note via `textContent`; style as the heading note: `margin-left: 0.5rem;
-  font-weight: 400; color: var(--gl-text-color-subtle, #626168);`.
+- Text `📌 ` + note via `textContent`; styled by a stylesheet the script injects once:
+  `margin-left: 0.5rem; font-weight: 600; color: #9e5400`, and `#e9be74` under GitLab's
+  `.gl-dark`. Bold amber, so a note is spotted at a glance in a dense table and does not
+  read as part of the commit title. A stylesheet rather than an inline style, because
+  only a rule can key off the dark theme. The heading note shares it.
+  (0.20.1 — the first cut was subtle grey, which vanished in a busy row.)
 - Inside the link it truncates with GitLab's own ellipsis in a narrow column, and a
   click opens the pipeline.
 - The span carries `data-gitlab-navigate-note="<pipeline url>"`. Each check updates,

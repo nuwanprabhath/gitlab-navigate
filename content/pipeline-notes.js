@@ -7,10 +7,24 @@
   const HEADING_ID = '[data-testid="pipeline-header"] [data-testid="pipeline-id"]';
   const TABLE_LINKS =
     '[data-testid="pipeline-url-table-cell"] [data-testid="pipeline-url-link"]';
-  const STYLE =
-    'margin-left: 0.5rem; font-weight: 400; color: var(--gl-text-color-subtle, #626168);';
+  const STYLE_MARK = 'data-gitlab-navigate-note-style';
+  // A stylesheet rather than an inline style, so the dark variant can key off the
+  // `gl-dark` class GitLab puts on <html>. Bold amber so a note is spotted at a glance
+  // in a dense table without reading as part of the commit title.
+  const STYLE = `
+    [${MARK}] { margin-left: 0.5rem; font-weight: 600; color: #9e5400; }
+    .gl-dark [${MARK}] { color: #e9be74; }
+  `;
 
   let notes = new Map(); // pipeline url -> note
+
+  function ensureStyle() {
+    if (document.querySelector(`[${STYLE_MARK}]`)) return;
+    const style = document.createElement('style');
+    style.setAttribute(STYLE_MARK, '');
+    style.textContent = STYLE;
+    (document.head ?? document.documentElement).append(style);
+  }
 
   // Keeps one marked note span at the end of `container`, or none when `note` is ''.
   // Writes only when something is wrong: every write wakes the observer, and an
@@ -32,11 +46,11 @@
     const span = document.createElement('span');
     span.setAttribute(MARK, url);
     span.textContent = text;
-    span.style.cssText = STYLE;
     container.append(span);
   }
 
   function apply() {
+    ensureStyle();
     const headingId = document.querySelector(HEADING_ID);
     const page = pipelineUrlFromHref(location.href);
     if (headingId?.parentElement && page) {
