@@ -70,6 +70,8 @@ error line like the others. The box shows the effective pairs as `tag=colour`, j
   - `perentie-runner is listed twice` — the same tag twice, compared case-insensitively.
 - Empty input is valid and saves `[]`.
 - After a successful save the box is rewritten from the saved pairs.
+- The box is a two-row textarea (entries can be long and may be separated by new lines);
+  only the Save button saves, since Enter inserts a new line.
 
 ### On the page
 
@@ -153,7 +155,8 @@ storage), so it survives being stopped and restarted.
 ### Popup changes
 
 - `refreshPinned('pipelines')`: for an armed entry whose fetched status is final, the
-  update written by `updatePinned` also carries `notify: false`. The user is looking at
+  update written by `updatePinned` also carries `notify: false` (which `updatePinned`
+  stores by deleting the key). The user is looking at
   the result, so no notification follows. Unarmed entries are untouched.
 - `describePipeline` adds the bell to `trailing` (an element wrapping the 🔔 and the
   duration) and returns the `bell` descriptor.
@@ -176,8 +179,10 @@ runs the mutation directly.
   update.
 - `background: { "service_worker": "background.js", "scripts": ["background.js"],
   "type": "module" }`. Chrome 121+ uses the service worker and Firefox 121+ the event
-  page from the same entry; Firefox's minimum here is 140. `web-ext lint` must stay at
-  0/0/0; the implementation checks this first.
+  page from the same entry; Firefox's minimum here is 140. `web-ext lint` then reports
+  exactly one warning, `BACKGROUND_SERVICE_WORKER_IGNORED` (Firefox ignores
+  `service_worker`, which is why `scripts` is listed beside it), and 0 errors and 0
+  notices. Checked on a scratch copy of the manifest before this was written down.
 - Version `0.21.0`.
 
 ## Data
@@ -192,10 +197,10 @@ runs the mutation directly.
 |------|--------|
 | `content/colours.js` (new) | palette, defaults, `parseRunnerColours`, `resolveRunnerColour`, `textColourFor` |
 | `content/runner-tags.js` | coloured badges, reads `runnerColours`, redraws on change |
-| `lib/watch.js` (new) | `FINAL_STATUSES`, `isFinalStatus(status)`, `finishedNotice(entry, raw)` → `{ title, message }` or `null` |
+| `lib/watch.js` (new) | `FINAL_STATUSES`, `isFinalStatus(status)`, `finishedNotice(entry, fetched)` → `{ title, message }` or `null`, `checkWatched({ entries, fetchPipeline, update, notify })` |
 | `lib/pipeline-api.js` (new) | `fetchPipeline(entry)`, moved from `popup.js` |
 | `lib/storage.js` | lock helper around pinned mutations; `setPinnedNotify`; `getRunnerColours` / `setRunnerColours` |
-| `background.js` (new) | alarm, `checkWatched`, notification and click handling |
+| `background.js` (new) | alarm, notification and click handling; exports `runCheck`, `syncAlarm`, `openNotification` |
 | `pinned-list.js` | optional `bell` descriptor and `onToggleBell`; bell button in the hover actions |
 | `popup.js`, `popup.html`, `popup.css` | Runner colours field; bell wiring, permission request, popup disarm; styles; `<script src="content/colours.js">` |
 | `popup.js` | `ensurePipelineNoteScript`'s `js` list gains `content/colours.js` |
@@ -223,17 +228,25 @@ runs the mutation directly.
   - Runner colours field: defaults shown, a valid save stored and re-rendered, each error
     shown with nothing saved, empty saved as `[]`.
   - The 0.20 pipeline, ticket and MR scenarios as a regression check.
-- **Background harness** (headless Chrome loading `background.js` as a module with
-  stand-ins for `alarms`, `notifications`, `tabs`, `permissions`, `storage` and
-  `fetch`): notifies once and disarms for each final status; leaves a running pipeline
-  armed; skips and keeps the bell on after a network failure; disarms silently on 404;
-  creates and clears the alarm as bells come and go; does nothing when
-  `chrome.notifications` is missing; the click handler opens only http(s) ids.
+- **Background checker (bun, no browser):** the decision logic is `checkWatched(deps)` in
+  `lib/watch.js`, with the fetch, update and notify steps injected, and `background.js`
+  is tested with a fake `chrome` and a fake `fetch` (it exports `runCheck`,
+  `syncAlarm` and `openNotification`, and registers its listeners at import). Covered:
+  notifies once and disarms for each final status; leaves a running pipeline armed;
+  skips and keeps the bell on after a network failure; disarms silently on 404; a
+  failing notification leaves the bell armed and does not stop the other pipelines; the
+  alarm is created and cleared as bells come and go and is not duplicated; nothing
+  happens when `chrome.notifications` is missing; the click handler opens only http(s)
+  ids; the alarm listener ignores other alarms.
+- **Storage (bun, fake `chrome.storage` and Web Locks):** the pinned-list mutations still
+  behave (pin, unpin, note, reorder, cap), `setPinnedNotify` and `updatePinned`'s
+  `notify: false` add and remove the key, and two concurrent mutations both persist.
 - **Page harness:** badges take their colours in the table and on the pipeline page;
   unlisted tags take stable automatic colours; saving new colours recolours open pages;
   the no-op pass still writes nothing (the existing feedback-loop guard).
 - **Screenshots:** opened and byte-size checked (> 20 KB) before being trusted.
-- **Lint:** `web-ext lint` stays 0/0/0.
+- **Lint:** `web-ext lint` reports 0 errors, 0 notices and the one expected
+  `BACKGROUND_SERVICE_WORKER_IGNORED` warning.
 - **Manual, real browser:** a real service worker waking on the alarm, a real system
   notification and clicking it, and Firefox.
 
