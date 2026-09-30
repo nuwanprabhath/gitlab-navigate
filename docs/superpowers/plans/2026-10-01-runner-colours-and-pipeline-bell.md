@@ -64,6 +64,7 @@ Served over HTTP on **port 8768** (ES modules do not load from `file://`).
 - **Task 2** creates the *page* harness: GitLab-like fixture pages that run the real content scripts with stubbed `chrome.storage` and `fetch` (`page-stub.js`, `page-scenario.js`, `page-fixtures.sh`, `page-check.sh`, `page-shot.sh`, `page_chk.py`, and a page-only `sync.sh`).
 - **Task 3** creates the *popup* harness: the real `popup.js` with a stubbed `chrome.*` (`stub-chrome.js`, `scenario.js`, the full `sync.sh`, `check.sh`, `shot.sh`, `regress.sh`, `chk.py`, `colours-checks.py`) and records `baseline.txt` **before** that task changes any source. `bell-checks.py` arrives in Task 7.
 - The checks are timing-based: if one case fails, re-run that case once; a failure that persists is a real bug in the code, never a reason to edit an expected value or `baseline.txt`.
+- Web Locks are switched off in the popup harness's `stub-chrome.js` (headless virtual time cannot grant them, which makes every pinned-list write hang). This was discovered in Task 5: with real locks, in real time, the popup behaves correctly.
 
 ---
 
@@ -1056,6 +1057,13 @@ Write `$H/stub-chrome.js`:
 
 ```js
 // Minimal chrome.* stand-in so the real popup.js runs in a plain page.
+
+// Headless Chrome's --virtual-time-budget starves Web Locks: the grant is a real-time round
+// trip to the browser process that the virtual clock never waits for, so every pinned-list
+// write (they all take the lock from Task 5 on) would hang. The lock logic is covered by
+// test/storage.test.js, and the real popup was checked with real locks in real time.
+Object.defineProperty(Navigator.prototype, 'locks', { get() { return undefined; } });
+
 const params = new URLSearchParams(location.search);
 const BASE = 'https://gitlab.com/ternandsparrow/paratoo-fdcp';
 const minutesAgo = (m) => new Date(Date.now() - m * 60000).toISOString();
