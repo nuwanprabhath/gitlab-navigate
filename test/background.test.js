@@ -61,10 +61,15 @@ function makeChrome({ notifications = true } = {}) {
 
 const pin = (id, extra = {}) => ({ base: BASE, id, status: 'running', ref: 'dev/1.0.11', ...extra });
 
-// Serves GitLab's pipeline endpoint: id -> { status } | 'network' | 404
-function serve(responses) {
+// Serves GitLab's pipeline endpoint: id -> { status } | 'network' | 404, and the sign-in
+// probe (/api/v4/user)
+function serve(responses, { signedIn = true } = {}) {
   const fetched = [];
   globalThis.fetch = async (url) => {
+    if (String(url).endsWith('/api/v4/user')) {
+      fetched.push('user');
+      return { ok: signedIn };
+    }
     const id = String(url).split('/').pop();
     fetched.push(id);
     const response = responses[id];
@@ -125,6 +130,12 @@ describe('syncAlarm', () => {
     fake.data.pinnedPipelines = [pin('1', { notify: true })];
     await background.syncAlarm();
     await background.syncAlarm();
+    expect(fake.log.alarmsCreated).toHaveLength(1);
+  });
+
+  test('creates the alarm once for two calls started together', async () => {
+    fake.data.pinnedPipelines = [pin('1', { notify: true })];
+    await Promise.all([background.syncAlarm(), background.syncAlarm()]);
     expect(fake.log.alarmsCreated).toHaveLength(1);
   });
 
@@ -196,6 +207,16 @@ describe('runCheck', () => {
 
     expect(fake.log.notices).toHaveLength(0);
     expect('notify' in fake.data.pinnedPipelines[0]).toBe(false);
+  });
+
+  test('keeps the bell on after a 404 while signed out', async () => {
+    fake.data.pinnedPipelines = [pin('1', { notify: true })];
+    serve({ 1: 404 }, { signedIn: false });
+    await background.runCheck();
+
+    expect(fake.log.notices).toHaveLength(0);
+    expect(fake.data.pinnedPipelines[0].notify).toBe(true);
+    expect(fake.alarmMap.has('pipeline-watch')).toBe(true);
   });
 
   test('does not fetch pipelines whose bell is off', async () => {

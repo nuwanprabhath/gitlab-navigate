@@ -2,19 +2,29 @@
 // notification when one finishes. A service worker in Chrome and an event page in
 // Firefox (see manifest.json): every listener is registered at the top level, and nothing
 // is kept in memory between wake-ups because all state — the bell flags — is in storage.
-import { fetchPipeline } from './lib/pipeline-api.js';
+import { fetchPipeline, isSignedIn } from './lib/pipeline-api.js';
 import { getPinned, updatePinned } from './lib/storage.js';
 import { checkWatched } from './lib/watch.js';
 
 const ALARM = 'pipeline-watch';
 const PINNED_KEY = 'pinnedPipelines';
 
-// Keeps the alarm running exactly while some pinned pipeline has its bell on.
-export async function syncAlarm() {
+async function applyAlarm() {
   const armed = (await getPinned('pipelines')).some((entry) => entry.notify);
   const existing = await chrome.alarms.get(ALARM);
-  if (armed && !existing) chrome.alarms.create(ALARM, { periodInMinutes: 1 });
+  if (armed && !existing) await chrome.alarms.create(ALARM, { periodInMinutes: 1 });
   else if (!armed && existing) await chrome.alarms.clear(ALARM);
+}
+
+// Calls overlap (every pinned write fires storage.onChanged), and check-then-act must not
+// interleave, so they run one after another. A failed call does not block the next.
+let pending = Promise.resolve();
+
+// Keeps the alarm running exactly while some pinned pipeline has its bell on.
+export function syncAlarm() {
+  const run = pending.then(applyAlarm, applyAlarm);
+  pending = run.catch(() => {});
+  return run;
 }
 
 async function notify({ url, title, message }) {
@@ -37,6 +47,7 @@ export async function runCheck() {
     fetchPipeline,
     update: (update) => updatePinned('pipelines', [update]),
     notify,
+    isSignedIn: (entry) => isSignedIn(entry.base),
   });
   await syncAlarm();
 }

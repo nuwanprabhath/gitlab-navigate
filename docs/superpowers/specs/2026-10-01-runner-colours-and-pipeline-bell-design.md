@@ -136,7 +136,10 @@ storage), so it survives being stopped and restarted.
     save the fresh status fields and turn the bell off in **one** write. `manual`,
     `scheduled`, `created`, `pending`, `running` and the rest are not final: save the
     fresh status, leave the bell on.
-  - HTTP 404: the pipeline is gone, so turn the bell off silently.
+  - HTTP 404: GitLab also answers 404 (not 401) for a private project when the session has
+    expired, so the checker asks `isSignedIn` (`GET /api/v4/user` with the same
+    credentials). Signed in → the pipeline is gone and the bell is turned off silently;
+    signed out or unknown → the bell stays on and the next pass tries again.
   - Any other failure (network, logged out, 5xx): skip; try again next minute.
 - **Notification:** `chrome.notifications.create(pipelineUrl, { type: 'basic',
   iconUrl: 'icons/icon128.png', title, message })`. `title` is `Pipeline passed` /
@@ -197,8 +200,8 @@ runs the mutation directly.
 |------|--------|
 | `content/colours.js` (new) | palette, defaults, `parseRunnerColours`, `resolveRunnerColour`, `textColourFor` |
 | `content/runner-tags.js` | coloured badges, reads `runnerColours`, redraws on change |
-| `lib/watch.js` (new) | `FINAL_STATUSES`, `isFinalStatus(status)`, `finishedNotice(entry, fetched)` → `{ title, message }` or `null`, `checkWatched({ entries, fetchPipeline, update, notify })` |
-| `lib/pipeline-api.js` (new) | `fetchPipeline(entry)`, moved from `popup.js` |
+| `lib/watch.js` (new) | `FINAL_STATUSES`, `isFinalStatus(status)`, `finishedNotice(entry, fetched)` → `{ title, message }` or `null`, `checkWatched({ entries, fetchPipeline, update, notify, isSignedIn })` |
+| `lib/pipeline-api.js` (new) | `fetchPipeline(entry)`, moved from `popup.js`; `isSignedIn(base)` |
 | `lib/storage.js` | lock helper around pinned mutations; `setPinnedNotify`; `getRunnerColours` / `setRunnerColours` |
 | `background.js` (new) | alarm, notification and click handling; exports `runCheck`, `syncAlarm`, `openNotification` |
 | `pinned-list.js` | optional `bell` descriptor and `onToggleBell`; bell button in the hover actions |
@@ -233,7 +236,7 @@ runs the mutation directly.
   is tested with a fake `chrome` and a fake `fetch` (it exports `runCheck`,
   `syncAlarm` and `openNotification`, and registers its listeners at import). Covered:
   notifies once and disarms for each final status; leaves a running pipeline armed;
-  skips and keeps the bell on after a network failure; disarms silently on 404; a
+  skips and keeps the bell on after a network failure; disarms silently on 404 only while signed in (and keeps the bell on for a 404 while signed out); a
   failing notification leaves the bell armed and does not stop the other pipelines; the
   alarm is created and cleared as bells come and go and is not duplicated; nothing
   happens when `chrome.notifications` is missing; the click handler opens only http(s)

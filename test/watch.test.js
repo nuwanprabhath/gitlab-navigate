@@ -64,7 +64,9 @@ describe('checkWatched', () => {
     const notices = [];
     const fetched = [];
     let notifyFails = false;
+    const signIn = { value: true };
     return {
+      signIn,
       updates,
       notices,
       fetched,
@@ -80,6 +82,10 @@ describe('checkWatched', () => {
         },
         update: async (fields) => {
           updates.push(fields);
+        },
+        isSignedIn: async () => {
+          if (signIn.value instanceof Error) throw signIn.value;
+          return signIn.value;
         },
         notify: async (notice) => {
           if (notifyFails) throw new Error('notifications are blocked');
@@ -134,6 +140,24 @@ describe('checkWatched', () => {
     await checkWatched({ entries: [entry()], ...h.deps });
     expect(h.notices).toHaveLength(0);
     expect(h.updates).toEqual([{ base: BASE, id: '100', notify: false }]);
+  });
+
+  test('keeps the bell armed on a 404 while signed out (the session may have expired)', async () => {
+    const gone = Object.assign(new Error('GitLab returned 404'), { status: 404 });
+    const h = harness({ 100: gone, 200: { status: 'running' } });
+    h.signIn.value = false;
+    await checkWatched({ entries: [entry(), entry({ id: '200' })], ...h.deps });
+    expect(h.notices).toHaveLength(0);
+    expect(h.updates.map((u) => u.id)).toEqual(['200']);
+  });
+
+  test('treats a failing sign-in check as signed out on a 404', async () => {
+    const gone = Object.assign(new Error('GitLab returned 404'), { status: 404 });
+    const h = harness({ 100: gone });
+    h.signIn.value = new Error('offline');
+    await checkWatched({ entries: [entry()], ...h.deps });
+    expect(h.notices).toHaveLength(0);
+    expect(h.updates).toHaveLength(0);
   });
 
   test('keeps the bell armed when the notification cannot be shown, and carries on', async () => {

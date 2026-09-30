@@ -152,10 +152,12 @@ from a different GitLab site show their note in the popup only.
 
 **Notifications.** Hover an unfinished pipeline and click 🔔 to be told when it
 finishes. Even with the popup closed, the extension checks armed pipelines about once a
-minute and raises a browser notification — "Pipeline passed" or "Pipeline failed", with
-your note (or the number) and the branch. Click the notification to open the pipeline.
-The bell then switches itself off, so arm it again for the next run. A small 🔔 beside
-the duration shows which pipelines are armed. The first time, the browser asks for
+minute and raises a browser notification — "Pipeline passed", "failed", "canceled" or
+"skipped", with your note (or the number) and the branch. Click the notification to open
+the pipeline. The bell then switches itself off, so arm it again for the next run.
+Opening the popup on an armed pipeline that has already finished switches its bell off
+quietly, without a notification. A small 🔔 beside the duration shows which pipelines
+are armed. The first time, the browser asks for
 permission to show notifications (and for GitLab access, if you haven't granted it).
 Notifications only appear while the browser is running, and can arrive up to a minute or
 so after the pipeline finishes.
