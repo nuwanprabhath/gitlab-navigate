@@ -347,8 +347,8 @@ input[type="text"]:disabled {
   pointer-events: auto;
 }
 
-.pin-item:hover .pin-duration,
-.pin-item:focus-within .pin-duration,
+.pin-item:hover .pin-trailing,
+.pin-item:focus-within .pin-trailing,
 .pin-item:hover .pin-mr-pipeline,
 .pin-item:focus-within .pin-mr-pipeline {
   visibility: hidden;
@@ -371,6 +371,31 @@ input[type="text"]:disabled {
 
 .pin-remove:hover {
   color: var(--error);
+}
+
+/* A pipeline's right edge: the small bell when armed, then the duration. */
+.pin-trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.pin-bell-mark {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* The bell is a colour emoji, so "off" is grey and dim rather than a different colour. */
+.pin-bell {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.pin-bell:hover,
+.pin-bell.armed {
+  filter: none;
+  opacity: 1;
 }
 
 .pin-edit {

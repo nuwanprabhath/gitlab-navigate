@@ -5,11 +5,13 @@ import { reorderPinned, setPinnedNote, unpinItem } from './lib/storage.js';
  * One pinned list: rendering, drag-to-reorder, ✎ note editing and ✕ unpin. Lists differ
  * only in what a row shows, which describeRow(entry) supplies:
  *
- *   { status, glyph, headline, headlineIsId, subline, editSubline, sublineTail, tooltip, trailing, url }
+ *   { status, glyph, headline, headlineIsId, subline, editSubline, sublineTail, tooltip, trailing, url, bell }
  *
  * `trailing` is an element for the row's right edge (a pipeline's duration) or null.
  * `sublineTail` is optional text appended after the subline that never shrinks (an MR's
  * target branch), shown in both the nav row and the edit row.
+ * `bell` is optional, `{ armed, available }`: a 🔔 toggle among the hover actions, shown when
+ * the bell is armed or available; clicking it calls onToggleBell(entry).
  * onRender(entries) runs after every render.
  */
 // `idPrefix` is how the item's number is written: `#` for pipelines and tickets, `!` for MRs.
@@ -22,6 +24,7 @@ export function createPinnedList({
   describeRow,
   navigate,
   onRender,
+  onToggleBell,
 }) {
   let entries = [];
   let draggedIndex = null;
@@ -86,7 +89,19 @@ export function createPinnedList({
     return nav;
   }
 
-  function buildActions(entry) {
+  function buildBell(entry, bell) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `pin-action pin-bell${bell.armed ? ' armed' : ''}`;
+    button.title = bell.armed ? 'Stop notifying' : 'Notify me when this finishes';
+    button.setAttribute('aria-label', button.title);
+    button.setAttribute('aria-pressed', String(bell.armed));
+    button.textContent = '\u{1F514}';
+    button.addEventListener('click', () => onToggleBell(entry));
+    return button;
+  }
+
+  function buildActions(entry, row) {
     const edit = document.createElement('button');
     edit.type = 'button';
     edit.className = 'pin-action pin-note-edit';
@@ -108,6 +123,9 @@ export function createPinnedList({
 
     const actions = document.createElement('span');
     actions.className = 'pin-actions';
+    if (row.bell && onToggleBell && (row.bell.armed || row.bell.available)) {
+      actions.append(buildBell(entry, row.bell));
+    }
     actions.append(edit, remove);
     return actions;
   }
@@ -169,7 +187,7 @@ export function createPinnedList({
     const item = document.createElement('li');
     item.className = 'pin-item';
     if (isEditing) item.append(handle, buildEditor(entry, row));
-    else item.append(handle, buildNavButton(row), buildActions(entry));
+    else item.append(handle, buildNavButton(row), buildActions(entry, row));
 
     handle.addEventListener('dragstart', (event) => {
       draggedIndex = index;

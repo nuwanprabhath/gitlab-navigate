@@ -34,12 +34,14 @@ import {
   removeHistory,
   updatePinned,
   setBase,
+  setPinnedNotify,
   setIgnoredJobTags,
   setRunnerColours,
   setTargetBranch,
   setUsername,
 } from './lib/storage.js';
 import { fetchPipeline } from './lib/pipeline-api.js';
+import { isFinalStatus } from './lib/watch.js';
 import { createPinnedList } from './pinned-list.js';
 
 // Loaded by a classic <script> tag in popup.html, which runs before this module.
@@ -101,6 +103,7 @@ const pinnedMrs = document.getElementById('pinned-mrs');
 const pinnedMrsList = document.getElementById('pinned-mrs-list');
 const pinned = document.getElementById('pinned');
 const pinnedList = document.getElementById('pinned-list');
+const bellMessage = document.getElementById('bell-message');
 const recent = document.getElementById('recent');
 const recentList = document.getElementById('recent-list');
 
@@ -248,6 +251,18 @@ function describePipeline(entry) {
   duration.dataset.pipelineId = entry.id;
   duration.textContent = formatDuration(pipelineElapsedSeconds(entry.raw ?? {})) ?? '';
 
+  // The right edge: a small bell when armed, then the duration.
+  const trailing = document.createElement('span');
+  trailing.className = 'pin-trailing';
+  if (entry.notify) {
+    const mark = document.createElement('span');
+    mark.className = 'pin-bell-mark';
+    mark.title = 'Notifying when this finishes';
+    mark.textContent = '\u{1F514}';
+    trailing.append(mark);
+  }
+  trailing.append(duration);
+
   return {
     status: entry.status ?? 'unknown',
     glyph: STATUS_GLYPHS[entry.status] ?? '●',
@@ -256,7 +271,10 @@ function describePipeline(entry) {
     subline: entry.note ? idAndRef(entry) : entry.ref ?? '',
     editSubline: idAndRef(entry),
     tooltip: entry.note ? `${entry.note}\n${statusLine}` : statusLine,
-    trailing: duration,
+    trailing,
+    // Not offered once finished: notifying at once would be pointless. A retry turns the
+    // status back to running and the bell returns; an armed bell is always shown.
+    bell: { armed: Boolean(entry.notify), available: !isFinalStatus(entry.status) },
     url: pipelineWebUrl(entry),
   };
 }
@@ -268,6 +286,7 @@ const pipelinesList = createPinnedList({
   list: pinnedList,
   describeRow: describePipeline,
   navigate,
+  onToggleBell: toggleBell,
   onRender() {
     scheduleTick();
     refreshPinButton();
@@ -475,13 +494,23 @@ async function fetchMr(entry) {
 
 const FETCHERS = { pipelines: fetchPipeline, tickets: fetchTicket, mrs: fetchMr };
 
+// The popup is showing a finished pipeline's result, so an armed bell has done its job:
+// switch it off without a notification.
+function disarmFinished(entries, updates) {
+  const armed = new Set(entries.filter((e) => e.notify).map((e) => `${e.base} ${e.id}`));
+  return updates.map((u) =>
+    armed.has(`${u.base} ${u.id}`) && isFinalStatus(u.status) ? { ...u, notify: false } : u,
+  );
+}
+
 async function refreshPinned(kind) {
   const list = lists[kind];
   const entries = list.getEntries();
   if (entries.length === 0) return;
 
   const results = await Promise.allSettled(entries.map(FETCHERS[kind]));
-  const updates = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  let updates = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  if (kind === 'pipelines') updates = disarmFinished(entries, updates);
   if (updates.length === 0) return;
 
   try {
@@ -512,6 +541,38 @@ function refreshPinButton() {
     const noun = { pipelines: 'pipeline', tickets: 'ticket', mrs: 'MR' }[pinnable.kind];
     pinButton.textContent = `\u{1F4CC} Pin this ${noun}`;
   }
+}
+
+const BELL_DENIED =
+  'Notifications need your permission — click the bell again to allow them.';
+
+async function toggleBell(entry) {
+  clearError(bellMessage);
+
+  if (entry.notify) {
+    pipelinesList.setEntries(await setPinnedNotify(entry.base, entry.id, false));
+    return;
+  }
+
+  // Must be the first await in a click handler, or the user gesture is lost. One request
+  // covers both the notifications permission and GitLab access (for the checker's fetch).
+  let granted = false;
+  try {
+    granted = await chrome.permissions.request({
+      permissions: ['notifications'],
+      origins: [originPattern(entry.base)],
+    });
+  } catch {
+    granted = false;
+  }
+
+  if (!granted) {
+    showError(bellMessage, BELL_DENIED);
+    return;
+  }
+
+  ensurePipelineNoteScript(entry.base);
+  pipelinesList.setEntries(await setPinnedNotify(entry.base, entry.id, true));
 }
 
 async function doPin() {
