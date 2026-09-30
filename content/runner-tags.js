@@ -1,10 +1,13 @@
-// Shows the runner a pipeline targets as a grey badge: after GitLab's own badges in each
+// Shows the runner a pipeline targets as a coloured badge: after GitLab's own badges in each
 // pipelines-table row, and after the header badges on a pipeline page. GitLab does not
 // keep a pipeline's inputs, so the runner comes from its jobs' tags.
 // Relies on content/shared.js, which runs first.
 (() => {
   const { pipelineUrlFromHref, sharedJobTags, watch } = globalThis.gitlabNavigate;
+  const { DEFAULT_RUNNER_COLOURS, resolveRunnerColour, sanitizeRunnerColours } =
+    globalThis.gitlabNavigateColours;
   const MARK = 'data-gitlab-navigate-runner';
+  const COLOUR_MARK = 'data-gitlab-navigate-runner-colour';
   const TABLE_CELL = '[data-testid="pipeline-url-table-cell"]';
   const TABLE_LINK = '[data-testid="pipeline-url-link"]';
   const HEADER_JOBS = '[data-testid="pipeline-header"] [data-testid="total-jobs"]';
@@ -22,6 +25,7 @@
   // settings change applies without refetching.
   let cache = new Map();
   let ignored = new Set();
+  let colours = DEFAULT_RUNNER_COLOURS;
   let ready = false;
   const requested = new Set(); // fetched, or being fetched, during this page load
   const queue = [];
@@ -32,16 +36,25 @@
     ignored = new Set((Array.isArray(tags) ? tags : []).map((tag) => String(tag).toLowerCase()));
   }
 
+  // Absent or malformed storage falls back to the defaults; `[]` is a real choice.
+  function setColours(value) {
+    colours = sanitizeRunnerColours(value) ?? DEFAULT_RUNNER_COLOURS;
+  }
+
   function visibleTags(url) {
     return (cache.get(url) ?? []).filter((tag) => !ignored.has(tag.toLowerCase()));
   }
 
   function badge(url, tag) {
+    const colour = resolveRunnerColour(tag, colours);
     const outer = document.createElement('span');
     outer.setAttribute(MARK, url);
+    outer.setAttribute(COLOUR_MARK, colour.background);
     outer.title = 'Runner tag';
-    outer.className = 'gl-badge badge badge-pill badge-neutral';
+    outer.className = 'gl-badge badge badge-pill';
     outer.style.marginLeft = '0.25rem';
+    outer.style.backgroundColor = colour.background;
+    outer.style.color = colour.color;
     const inner = document.createElement('span');
     inner.className = 'gl-badge-content';
     inner.textContent = tag;
@@ -54,8 +67,12 @@
   // observer, and an unconditional write would loop forever.
   function place(container, before, url, tags) {
     const existing = [...container.children].filter((child) => child.hasAttribute(MARK));
-    const have = existing.map((el) => `${el.getAttribute(MARK)} ${el.textContent}`);
-    const wanted = tags.map((tag) => `${url} ${tag}`);
+    const have = existing.map(
+      (el) => `${el.getAttribute(MARK)} ${el.textContent} ${el.getAttribute(COLOUR_MARK)}`,
+    );
+    const wanted = tags.map(
+      (tag) => `${url} ${tag} ${resolveRunnerColour(tag, colours).background}`,
+    );
     if (have.length === wanted.length && have.every((value, i) => value === wanted[i])) return;
 
     for (const el of existing) el.remove();
@@ -138,14 +155,15 @@
 
   async function load() {
     try {
-      const [{ [CACHE_KEY]: stored }, { ignoredJobTags }] = await Promise.all([
+      const [{ [CACHE_KEY]: stored }, synced] = await Promise.all([
         chrome.storage.local.get(CACHE_KEY),
-        chrome.storage.sync.get('ignoredJobTags'),
+        chrome.storage.sync.get(['ignoredJobTags', 'runnerColours']),
       ]);
       cache = new Map(
         (Array.isArray(stored) ? stored : []).filter(isValidPair),
       );
-      setIgnored(ignoredJobTags);
+      setIgnored(synced.ignoredJobTags);
+      setColours(synced.runnerColours);
     } catch {
       // The extension was reloaded or updated; this copy of the script is orphaned.
       return;
@@ -156,10 +174,10 @@
 
   watch(apply);
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'sync' && changes.ignoredJobTags) {
-      setIgnored(changes.ignoredJobTags.newValue);
-      apply();
-    }
+    if (area !== 'sync' || !(changes.ignoredJobTags || changes.runnerColours)) return;
+    if (changes.ignoredJobTags) setIgnored(changes.ignoredJobTags.newValue);
+    if (changes.runnerColours) setColours(changes.runnerColours.newValue);
+    apply();
   });
   load();
 })();

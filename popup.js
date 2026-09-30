@@ -392,7 +392,12 @@ async function hasGitLabAccess() {
 // registration.
 const PIPELINE_PAGE_SCRIPT = {
   id: 'pipeline-note',
-  js: ['content/shared.js', 'content/pipeline-notes.js', 'content/runner-tags.js'],
+  js: [
+    'content/shared.js',
+    'content/colours.js',
+    'content/pipeline-notes.js',
+    'content/runner-tags.js',
+  ],
   runAt: 'document_idle',
   persistAcrossSessions: true,
 };
