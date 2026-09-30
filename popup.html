@@ -61,6 +61,18 @@
         <button id="ignored-tags-save" type="button">Save</button>
       </div>
       <p class="error" id="ignored-tags-error" hidden></p>
+
+      <label for="runner-colours-input">Runner colours</label>
+      <div class="settings-row">
+        <textarea
+          id="runner-colours-input"
+          rows="2"
+          spellcheck="false"
+          placeholder="perentie-runner=red, huy-runner=orange"
+        ></textarea>
+        <button id="runner-colours-save" type="button">Save</button>
+      </div>
+      <p class="error" id="runner-colours-error" hidden></p>
     </section>
 
     <section class="group">
@@ -206,6 +218,7 @@
       <ul id="recent-list"></ul>
     </section>
 
+    <script src="content/colours.js"></script>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

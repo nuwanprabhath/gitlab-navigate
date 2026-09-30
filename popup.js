@@ -26,6 +26,7 @@ import {
   getBase,
   getHistory,
   getIgnoredJobTags,
+  getStoredRunnerColours,
   getTargetBranch,
   getUsername,
   getPinned,
@@ -35,10 +36,19 @@ import {
   updatePinned,
   setBase,
   setIgnoredJobTags,
+  setRunnerColours,
   setTargetBranch,
   setUsername,
 } from './lib/storage.js';
 import { createPinnedList } from './pinned-list.js';
+
+// Loaded by a classic <script> tag in popup.html, which runs before this module.
+const {
+  DEFAULT_RUNNER_COLOURS,
+  formatRunnerColours,
+  parseRunnerColours,
+  sanitizeRunnerColours,
+} = globalThis.gitlabNavigateColours;
 
 const LABELS = {
   ticket: 'Ticket',
@@ -64,6 +74,9 @@ const usernameError = document.getElementById('username-error');
 const ignoredTagsInput = document.getElementById('ignored-tags-input');
 const ignoredTagsSave = document.getElementById('ignored-tags-save');
 const ignoredTagsError = document.getElementById('ignored-tags-error');
+const runnerColoursInput = document.getElementById('runner-colours-input');
+const runnerColoursSave = document.getElementById('runner-colours-save');
+const runnerColoursError = document.getElementById('runner-colours-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
 const ticketInput = document.getElementById('ticket');
 const historyInput = document.getElementById('history');
@@ -95,6 +108,7 @@ let base = '';
 let targetBranch = '';
 let username = '';
 let ignoredJobTags = [];
+let runnerColours = DEFAULT_RUNNER_COLOURS;
 let activeTabId = null;
 let swappedUrl = '';
 // What the active tab shows, if it can be pinned: { kind, base, id }.
@@ -125,6 +139,7 @@ function openSettings() {
   targetBranchInput.value = targetBranch;
   usernameInput.value = username;
   ignoredTagsInput.value = ignoredJobTags.join(', ');
+  runnerColoursInput.value = formatRunnerColours(runnerColours);
   baseInput.focus();
   baseInput.select();
 }
@@ -135,6 +150,7 @@ function closeSettings() {
   clearError(targetBranchError);
   clearError(usernameError);
   clearError(ignoredTagsError);
+  clearError(runnerColoursError);
 }
 
 function navigate(url) {
@@ -683,6 +699,26 @@ async function saveIgnoredTags() {
   ignoredTagsInput.value = tags.join(', ');
 }
 
+// Nothing is saved unless the whole box parses; an empty box is valid and clears the
+// explicit colours, leaving every runner with an automatic one.
+async function saveRunnerColours() {
+  clearError(runnerColoursError);
+
+  const result = parseRunnerColours(runnerColoursInput.value);
+  if (result.error) {
+    showError(runnerColoursError, result.error);
+    return;
+  }
+  try {
+    await setRunnerColours(result.pairs);
+  } catch {
+    showError(runnerColoursError, 'Could not save; try again');
+    return;
+  }
+  runnerColours = result.pairs;
+  runnerColoursInput.value = formatRunnerColours(runnerColours);
+}
+
 function goToBaseList(buildListUrl) {
   if (!base) {
     openSettings();
@@ -772,11 +808,15 @@ ignoredTagsInput.addEventListener('keydown', (event) => {
   saveIgnoredTags();
 });
 
+// Enter inserts a new line in this box, so only the button saves.
+runnerColoursSave.addEventListener('click', saveRunnerColours);
+
 async function init() {
   base = await getBase();
   targetBranch = await getTargetBranch();
   username = await getUsername();
   ignoredJobTags = await getIgnoredJobTags();
+  runnerColours = sanitizeRunnerColours(await getStoredRunnerColours()) ?? DEFAULT_RUNNER_COLOURS;
   mrTo.value = targetBranch;
   historyInput.value = targetBranch;
   renderHistory(await getHistory());
