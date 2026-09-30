@@ -63,27 +63,37 @@ html = html.replace('<input id="history" data-type="history" type="text" spellch
 # static treatment as Recent. Glyphs and statuses match STATUS_GLYPHS in popup.js.
 pins = [
     ('running', '&#x25CF;', '2816150418', 'dev/1.0.11', '4m 12s',
-     'Hotfix: login redirect loop'),
+     'Hotfix: login redirect loop', 'armed'),
     ('success', '&#x2713;', '2816150001', 'fix-plot-layout-pro-expansion-issue', '7m 3s',
-     'Retry after flaky e2e'),
-    ('failed', '&#x2715;', '2815998877', '2846-regression-fix', '2m 41s', None),
+     'Retry after flaky e2e', None),
+    ('failed', '&#x2715;', '2815998877', '2846-regression-fix', '2m 41s', None, None),
 ]
 
 
-def pin_item(status, glyph, pid, ref, duration, note):
-    # Mirrors describePipeline() in popup.js and buildNavButton()/buildActions() in pinned-list.js.
+def pin_item(status, glyph, pid, ref, duration, note, bell):
+    # Mirrors describePipeline() in popup.js and buildNavButton()/buildBell()/buildActions()
+    # in pinned-list.js. `bell` is 'armed', 'available' or None (finished pipelines).
     headline = (f'<span class="pin-note">{note}</span>' if note
                 else f'<span class="pin-id">#{pid}</span>')
     subline = f'#{pid} &#xB7; {ref}' if note else ref
+    mark = ('<span class="pin-bell-mark" title="Notifying when this finishes">&#x1F514;</span>'
+            if bell == 'armed' else '')
+    button = ''
+    if bell:
+        armed = bell == 'armed'
+        label = 'Stop notifying' if armed else 'Notify me when this finishes'
+        button = (f'<button type="button" class="pin-action pin-bell{" armed" if armed else ""}" '
+                  f'aria-label="{label}" aria-pressed="{"true" if armed else "false"}">&#x1F514;</button>')
     return (
         f'<li class="pin-item">'
         f'<span class="pin-handle" aria-label="Drag to reorder"></span>'
         f'<button type="button" class="pin-nav">'
         f'<span class="pin-status" data-status="{status}">{glyph}</span>'
         f'<span class="pin-main">{headline}<span class="pin-ref">{subline}</span></span>'
-        f'<span class="pin-duration">{duration}</span>'
+        f'<span class="pin-trailing">{mark}<span class="pin-duration">{duration}</span></span>'
         f'</button>'
         f'<span class="pin-actions">'
+        f'{button}'
         f'<button type="button" class="pin-action pin-note-edit" aria-label="Edit note">&#x270E;</button>'
         f'<button type="button" class="pin-action pin-remove" aria-label="Unpin this pipeline">&#x2715;</button>'
         f'</span>'

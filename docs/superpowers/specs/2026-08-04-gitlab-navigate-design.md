@@ -37,12 +37,16 @@ gitlab-navigate/
   popup.html
   popup.css
   popup.js          UI wiring: events, rendering, storage calls
-  pinned-list.js    one pinned list: rows, drag-to-reorder, note editing
+  pinned-list.js    one pinned list: rows, drag-to-reorder, note editing, the bell button
+  background.js     alarm + notification checker for the pipeline bell
   content/shared.js          helpers shared by the GitLab page scripts
+  content/colours.js         runner-badge palette and colour rules (page script and popup)
   content/pipeline-notes.js  pinned notes on GitLab pipeline pages and the pipelines table
   content/runner-tags.js     runner badges on GitLab pipeline pages and the pipelines table
   lib/parse.js      pure functions: reference -> URL
   lib/storage.js    chrome.storage read/write helpers
+  lib/pipeline-api.js  the pinned-pipeline fetch shared by the popup and background.js
+  lib/watch.js      bell decisions: final statuses, notification text, checkWatched
   icons/            16/32/48/128 px PNGs
   test/parse.test.js
   README.md
@@ -52,7 +56,7 @@ gitlab-navigate/
 and are the unit-tested code. `popup.js`, `pinned-list.js` and the other page scripts
 hold all DOM and Chrome API interaction. `lib/storage.js` isolates the storage keys so
 nothing else needs to know them — except the page scripts, which cannot import modules
-and read `pinnedPipelines`, `runnerTags` and `ignoredJobTags` directly.
+and read `pinnedPipelines`, `runnerTags`, `ignoredJobTags` and `runnerColours` directly.
 
 Modules load as ES modules (`<script type="module" src="popup.js">`), which MV3
 popups support.
@@ -65,8 +69,9 @@ Fixed-width popup (~320px). Top to bottom:
 
 1. Header row: title and the gear button (toggles the settings row).
 2. Settings row (hidden by default): base repo URL, default MR target branch, your
-   GitLab username, and job tags to ignore for runner badges, each its own labelled
-   input + Save button + error line.
+   GitLab username, job tags to ignore for runner badges, and runner colours, each its
+   own labelled input + Save button + error line (the colours box is a two-row
+   textarea, saved only by its button).
 3. Four labelled `.group` sections, each with an `<h2>`:
    - **MRs** — the Reviewer and Mine buttons, side by side.
    - **Tickets** — the Assigned, In progress and Authored buttons, side by side.
@@ -231,6 +236,8 @@ getBase() / setBase(url)                       // chrome.storage.sync, key "base
 getTargetBranch() / setTargetBranch(branch)     // chrome.storage.sync, key "targetBranch"
 getUsername() / setUsername(username)          // chrome.storage.sync, key "username"
 getIgnoredJobTags() / setIgnoredJobTags(tags)  // chrome.storage.sync, key "ignoredJobTags"
+getStoredRunnerColours() / setRunnerColours(pairs)  // chrome.storage.sync, key "runnerColours"
+setPinnedNotify(base, id, on)                   // chrome.storage.local, pinnedPipelines[].notify
 getHistory() / pushHistory(e)                   // chrome.storage.local, key "history"
 removeHistory(url)                             // chrome.storage.local, key "history"
 ```
@@ -247,7 +254,7 @@ fresh empty bucket and the settings look "cleared". Pinning the ID with a `key` 
 storage stable across reinstalls, folder moves, and machines. No code path ever calls
 `chrome.storage.*.clear()` or `.remove()`; only the named keys above are written.
 
-Base URL, target branch, username and ignored job tags all live in `sync` so they follow the user
+Base URL, target branch, username, ignored job tags and runner colours all live in `sync` so they follow the user
 across machines; history lives in `local` because it is machine-specific noise.
 
 ### manifest.json
@@ -256,10 +263,12 @@ across machines; history lives in `local` because it is machine-specific noise.
 {
   "manifest_version": 3,
   "name": "GitLab Navigate",
-  "version": "0.20.1",
+  "version": "0.21.0",
   "key": "<base64 SPKI public key — pins the extension ID>",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "alarms"],
+  "optional_permissions": ["notifications"],
   "optional_host_permissions": ["*://*/*"],
+  "background": { "service_worker": "background.js", "scripts": ["background.js"], "type": "module" },
   "action": { "default_popup": "popup.html" },
   "commands": {
     "_execute_action": {
@@ -347,6 +356,19 @@ link, and each pipeline gets a runner badge built from the tags every tagged job
 minus `ignoredJobTags`. The tags come from the jobs API and are cached in `runnerTags`.
 Full design: `2026-09-22-table-notes-runner-tags-pinned-mrs-design.md`.
 
+**Runner colours and the pipeline bell.** Runner badges take a colour from
+`content/colours.js` — the palette, the user's `runnerColours` pairs, and an automatic
+fallback hashed from the tag name — shared by the page script and the popup's settings
+box. A pinned pipeline can carry `notify: true` (the 🔔). `background.js`, a Chrome
+service worker and Firefox event page from one manifest entry, keeps a one-minute alarm
+running while any bell is on; each tick `checkWatched` (in `lib/watch.js`, with its
+fetch, update and notify steps injected) fetches the armed pipelines, notifies once for
+each that reached `success`, `failed`, `canceled` or `skipped`, and switches its bell
+off. `notifications` is an optional permission requested on the first click of a bell.
+Because the popup and the checker both write the pinned lists, `lib/storage.js` wraps
+every pinned mutation in a Web Lock. Full design:
+`2026-10-01-runner-colours-and-pipeline-bell-design.md`.
+
 ## Data Flow
 
 **On open:** `popup.js` reads the base URL, target branch, username, and history. If
@@ -419,9 +441,11 @@ exception message.
 
 ## Testing
 
-`bun test` over `test/content-shared.test.js`, covering the pure helpers in
-`content/shared.js` (pipeline URLs from links, the shared-job-tags rule), and
-`test/parse.test.js`, covering `lib/parse.js`:
+`bun test` over `test/content-shared.test.js` (the pure helpers in `content/shared.js`:
+pipeline URLs from links, the shared-job-tags rule), `test/colours.test.js` (the runner
+palette, parsing and resolution), `test/watch.test.js` (the bell's decisions),
+`test/storage.test.js` (pinned-list mutations and write safety), `test/background.test.js`
+(the checker, with a fake `chrome`), and `test/parse.test.js`, covering `lib/parse.js`:
 
 - each type's happy path, including the three URLs from the original request
 - `#2795` and `!1122` prefix stripping

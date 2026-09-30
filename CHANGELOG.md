@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.21.0
+
+- **Runner colours.** Each runner's badge now has its own colour, so identical runners
+  are spotted at a glance: `perentie-runner` is red, `huy-runner` orange and
+  `nuwan-runner` green by default, and any other runner gets a steady automatic colour
+  (blue, purple, teal, pink or slate, the same for a given tag name every time). Set
+  your own under the new **Runner colours** setting as `tag=colour` pairs — a name like
+  `red` or a hex like `#c2185b`. Saving recolours open GitLab pages at once.
+- **Pipeline bell.** Hover an unfinished pinned pipeline and click 🔔 to be notified when
+  it finishes. Even with the popup closed, the extension checks armed pipelines about
+  once a minute and raises a browser notification — "Pipeline passed", "failed",
+  "canceled" or "skipped" — naming your note (or the number) and the branch; clicking it
+  opens the pipeline. The bell then switches itself off. A small 🔔 beside the duration
+  shows which pipelines are armed, and opening the popup on a pipeline that has already
+  finished switches its bell off quietly.
+- New permissions: `alarms` (no install warning) and `notifications`, which is optional
+  and only requested the first time you click a bell, so updating adds no install
+  warning. The extension gains a background script (a service worker in Chrome, an event
+  page in Firefox); `web-ext lint` notes that Firefox ignores the `service_worker` key,
+  which is expected.
+- Pinned-list writes are now serialised with a browser lock, because the popup and the
+  background checker both update the list.
+
 ## 0.20.1
 
 - Pinned notes on GitLab pages are now **bold amber** instead of subtle grey, so a

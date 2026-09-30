@@ -150,6 +150,16 @@ granted GitLab access. After updating the extension, open the popup once for not
 reappear on GitLab. It covers the GitLab site in your repo URL setting; pipelines pinned
 from a different GitLab site show their note in the popup only.
 
+**Notifications.** Hover an unfinished pipeline and click 🔔 to be told when it
+finishes. Even with the popup closed, the extension checks armed pipelines about once a
+minute and raises a browser notification — "Pipeline passed" or "Pipeline failed", with
+your note (or the number) and the branch. Click the notification to open the pipeline.
+The bell then switches itself off, so arm it again for the next run. A small 🔔 beside
+the duration shows which pipelines are armed. The first time, the browser asks for
+permission to show notifications (and for GitLab access, if you haven't granted it).
+Notifications only appear while the browser is running, and can arrive up to a minute or
+so after the pipeline finishes.
+
 Status is refreshed each time the popup opens. Cached values appear instantly and are
 replaced when the refresh lands, so the list still reads sensibly offline.
 
@@ -171,6 +181,10 @@ grant access.
 The same access lets the popup switch on the pipeline-page script (notes and runner
 badges), which adds the `scripting` permission (Chrome shows no warning for it). If you
 remove the access in your browser settings, the browser stops running that script too.
+
+The bell adds the `alarms` permission (Chrome shows no warning for it) and asks for the
+`notifications` permission only when you first click a bell, so updating never adds an
+install warning.
 
 ## Pinned tickets
 
@@ -216,9 +230,24 @@ badge sits in a fixed-width column so every value lines up at the same left edge
 
 ## Runner badges
 
-On your GitLab site's pipelines list and pipeline pages, each pipeline gets a grey badge
-naming the runner it targets, such as `perentie-runner`, next to GitLab's own `latest` /
-`branch` badges.
+On your GitLab site's pipelines list and pipeline pages, each pipeline gets a coloured
+badge naming the runner it targets, such as `perentie-runner`, next to GitLab's own
+`latest` / `branch` badges. Every runner has its own colour, so identical runners can be
+spotted without reading the tag.
+
+**Colours.** `perentie-runner` is red, `huy-runner` orange and `nuwan-runner` green by
+default; any other runner gets a steady automatic colour (blue, purple, teal, pink or
+slate — always the same for the same tag name). Set your own under **Runner colours** in
+settings, written as `tag=colour` and separated by commas, spaces or new lines:
+
+```
+perentie-runner=red, huy-runner=orange, nuwan-runner=#2e7d32
+```
+
+A colour is a name (`red`, `orange`, `green`, `blue`, `purple`, `teal`, `pink`, `slate`)
+or a hex like `#c2185b`. A typo is rejected with a message and nothing is saved; an empty
+box gives every runner an automatic colour. Open GitLab pages recolour as soon as you
+save.
 
 GitLab doesn't keep the inputs a pipeline was started with, so a `RUNNER_TAG` input
 can't be read back, but it does record each job's runner tags. The badge shows the tags
@@ -246,7 +275,7 @@ can't break when GitLab changes their UI.
 
 ## Settings
 
-The gear button holds four fields:
+The gear button holds five fields:
 
 - **GitLab repo URL** — paste any page from the repo and everything from `/-/` onward
   is stripped, so `…/paratoo-fdcp/-/merge_requests/1122` is stored as
@@ -257,8 +286,11 @@ The gear button holds four fields:
 - **Ignore job tags** — job tags that aren't runners, left out of the
   [runner badges](#runner-badges), e.g. `cypress`. Separate several with commas or
   spaces; leave it empty to ignore nothing.
+- **Runner colours** — the colour of each runner's [badge](#runner-badges), as
+  `tag=colour` pairs; see there for the format. Leave it empty to give every runner an
+  automatic colour.
 
-All four are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
+All five are kept in `chrome.storage.sync`, so they follow your Chrome profile. In
 Firefox the same storage follows your Firefox Account; without one signed in it behaves
 as local storage and stays on that machine. Recent history is kept in
 `chrome.storage.local`.
