@@ -15,7 +15,6 @@ import {
   parsePipelineUrl,
   parseTagList,
   parseTicketUrl,
-  pipelineApiUrl,
   pipelineElapsedSeconds,
   reviewerMrUrl,
   runningPipelinesUrl,
@@ -40,6 +39,7 @@ import {
   setTargetBranch,
   setUsername,
 } from './lib/storage.js';
+import { fetchPipeline } from './lib/pipeline-api.js';
 import { createPinnedList } from './pinned-list.js';
 
 // Loaded by a classic <script> tag in popup.html, which runs before this module.
@@ -438,22 +438,6 @@ async function ensurePipelineNoteScript(forBase) {
   } catch {
     // Only the page notes and badges are lost; the popup itself is unaffected.
   }
-}
-
-async function fetchPipeline(entry) {
-  const response = await fetch(pipelineApiUrl(entry.base, entry.id), {
-    credentials: 'include',
-  });
-  if (!response.ok) throw new Error(`GitLab returned ${response.status}`);
-  const raw = await response.json();
-  return {
-    base: entry.base,
-    id: entry.id,
-    status: raw.status,
-    ref: raw.ref,
-    webUrl: raw.web_url,
-    raw,
-  };
 }
 
 async function fetchTicket(entry) {
