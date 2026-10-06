@@ -80,7 +80,7 @@ const runnerColoursInput = document.getElementById('runner-colours-input');
 const runnerColoursSave = document.getElementById('runner-colours-save');
 const runnerColoursError = document.getElementById('runner-colours-error');
 const refInputs = [...document.querySelectorAll('#refs input[data-type]')];
-const ticketInput = document.getElementById('ticket');
+const pipelineInput = document.getElementById('pipeline');
 const historyInput = document.getElementById('history');
 const mrFrom = document.getElementById('mr-from');
 const mrTo = document.getElementById('mr-to');
@@ -665,7 +665,7 @@ async function saveBase() {
   await setBase(base);
   closeSettings();
   setInputsEnabled(true);
-  ticketInput.focus();
+  pipelineInput.focus();
 }
 
 async function checkActiveTab() {
@@ -874,7 +874,7 @@ async function init() {
 
   if (base) {
     setInputsEnabled(true);
-    ticketInput.focus();
+    pipelineInput.focus();
   } else {
     // First run: explain what is missing instead of failing on submit.
     setInputsEnabled(false);

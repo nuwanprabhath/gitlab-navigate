@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.21.1
+
+- Opening the popup now puts the cursor in the **Pipeline** box instead of **Ticket**.
+
 ## 0.21.0
 
 - **Runner colours.** Each runner's badge now has its own colour, so identical runners
