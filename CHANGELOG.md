@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0
+
+- **Authored** button under the **MRs** heading opens the open MRs you created, newest
+  first, including any you assigned to someone else. It sits beside **Reviewer** and
+  **Mine**.
+
 ## 0.21.1
 
 - Opening the popup now puts the cursor in the **Pipeline** box instead of **Ticket**.

@@ -3,8 +3,9 @@ import {
   ParseError,
   assignedTicketsUrl,
   authoredPipelinesUrl,
+  authoredMrUrl,
   authoredTicketsUrl,
-  buildUrl,
+buildUrl,
   formatDuration,
   inProgressTicketsUrl,
   mineMrUrl,
@@ -329,6 +330,28 @@ describe('buildUrl input handling', () => {
       expect(err).toBeInstanceOf(ParseError);
       expect(err.message.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('authoredMrUrl', () => {
+  test('builds the opened-MRs-I-authored URL', () => {
+    expect(authoredMrUrl(BASE, 'nuwan-tern')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&author_username=nuwan-tern&first_page_size=100`,
+    );
+  });
+
+  test('encodes a username with special characters', () => {
+    expect(authoredMrUrl(BASE, 'a b')).toBe(
+      `${BASE}/-/merge_requests/?sort=created_date&state=opened&author_username=a+b&first_page_size=100`,
+    );
+  });
+
+  test('rejects a missing base URL', () => {
+    expect(() => authoredMrUrl('', 'nuwan-tern')).toThrow(ParseError);
+  });
+
+  test('rejects a missing username', () => {
+    expect(() => authoredMrUrl(BASE, '')).toThrow(ParseError);
   });
 });
 

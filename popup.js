@@ -1,6 +1,7 @@
 import {
   ParseError,
   assignedTicketsUrl,
+  authoredMrUrl,
   authoredPipelinesUrl,
   authoredTicketsUrl,
   buildUrl,
@@ -89,6 +90,7 @@ const swapMr = document.getElementById('swap-mr');
 const swapMrButton = document.getElementById('swap-mr-button');
 const mrReviewer = document.getElementById('mr-reviewer');
 const mrMine = document.getElementById('mr-mine');
+const mrAuthored = document.getElementById('mr-authored');
 const ticketsAssigned = document.getElementById('tickets-assigned');
 const ticketsInProgress = document.getElementById('tickets-in-progress');
 const ticketsAuthored = document.getElementById('tickets-authored');
@@ -823,6 +825,7 @@ for (const input of [mrFrom, mrTo]) {
 
 mrReviewer.addEventListener('click', () => goToUserList(reviewerMrUrl));
 mrMine.addEventListener('click', () => goToUserList(mineMrUrl));
+mrAuthored.addEventListener('click', () => goToUserList(authoredMrUrl));
 
 ticketsAssigned.addEventListener('click', () => goToUserList(assignedTicketsUrl));
 ticketsInProgress.addEventListener('click', () => goToUserList(inProgressTicketsUrl));

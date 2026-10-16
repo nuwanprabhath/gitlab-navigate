@@ -47,12 +47,13 @@ Three Firefox-specific things to know:
 
 ## MRs
 
-Two buttons under the **MRs** heading, each opening a filtered MR list (open, newest
+Three buttons under the **MRs** heading, each opening a filtered MR list (open, newest
 first, 100 per page):
 
 - **Reviewer** — MRs where you're requested as a reviewer (`reviewer_username`).
 - **Mine** — MRs assigned to you (`assignee_username`), i.e. the ones you have to deal
   with.
+- **Authored** — MRs you opened (`author_username`), wherever they're assigned.
 
 **Mine** is assignee-filtered rather than a true "authored or assigned" union because
 GitLab can't express that in a URL: filter params AND together (`?author_username=you&
@@ -62,8 +63,8 @@ but no `or` hash, and `scope` accepts only one of `created_by_me` / `assigned_to
 assignee covers your own MRs in practice — the one gap is an MR you opened and
 assigned to somebody else.
 
-Both need your GitLab username, set once in settings. Clicking either before the repo
-URL or username is configured opens settings with an inline error instead of failing
+All three need your GitLab username, set once in settings. Clicking any of them before the
+repo URL or username is configured opens settings with an inline error instead of failing
 quietly.
 
 ## Tickets
