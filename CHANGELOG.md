@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.1
+
+- Fixed a pipeline showing **no runner badge** when a few of its jobs run on a different
+  runner — for example the `notify` jobs pinned to `nectar` hid `nuwan-runner` on a
+  pipeline whose other jobs all use it. The badge now falls back to the tag most jobs
+  carry (every tag in a tie) when no tag is on every tagged job. Pipelines that already
+  worked look the same.
+- Runner tags remembered by older versions are dropped and fetched again, so pipelines
+  that were missing a badge pick it up on the next page load.
+
 ## 0.22.0
 
 - **Authored** button under the **MRs** heading opens the open MRs you created, newest

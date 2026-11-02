@@ -74,6 +74,29 @@ describe('sharedJobTags', () => {
     ]);
   });
 
+  test('is not hidden by a few jobs pinned to another runner (pipeline 3017090706)', () => {
+    const jobs = [
+      ...tagged(['cypress', 'nuwan-runner'], 19),
+      ...tagged(['nectar'], 3),
+      ...tagged([], 14),
+    ];
+    expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner']);
+  });
+
+  test('prefers the tags every job shares over the majority', () => {
+    const jobs = [...tagged(['cypress', 'perentie-runner'], 5), ...tagged(['perentie-runner'], 1)];
+    expect(sharedJobTags(jobs)).toEqual(['perentie-runner']);
+  });
+
+  test('shows every tag when the jobs split evenly across runners (pipeline 3015622379)', () => {
+    const jobs = [
+      ...tagged(['cypress', 'nuwan-runner'], 3),
+      ...tagged(['nectar'], 3),
+      ...tagged([], 10),
+    ];
+    expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner', 'nectar']);
+  });
+
   test('skips jobs without a tag_list', () => {
     expect(sharedJobTags([{ name: 'lint' }, ...tagged(['huy-runner'], 1)])).toEqual(['huy-runner']);
   });

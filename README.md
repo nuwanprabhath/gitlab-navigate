@@ -255,7 +255,9 @@ save.
 GitLab doesn't keep the inputs a pipeline was started with, so a `RUNNER_TAG` input
 can't be read back, but it does record each job's runner tags. The badge shows the tags
 that every tagged job in the pipeline carries; untagged jobs, which run on shared
-runners, don't count. If your jobs also share a tag that isn't a runner, such as
+runners, don't count. When no tag is on every tagged job — say a few `notify` jobs are
+pinned to another runner — it shows the tag carried by the most jobs instead (all of
+them, if tied). If your jobs also share a tag that isn't a runner, such as
 `cypress`, list it under **Ignore job tags** in settings and it's dropped.
 
 The page script reads the jobs with your existing GitLab login
