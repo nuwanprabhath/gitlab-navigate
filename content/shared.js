@@ -33,26 +33,34 @@
     };
   }
 
-  // The tags carried by every job that has any, or failing that by a large share of them.
-  // Untagged jobs run on shared runners and say nothing about the runner the pipeline targets.
+  // The tags carried by every job that has any. Untagged jobs run on shared runners and say
+  // nothing about the runner the pipeline targets.
+  //
+  // When no tag is on every job, some jobs are pinned to a fixed runner of their own (notify
+  // jobs on `nectar`, unit tests on `fast-cpu`). A pipeline's chosen runner is added on top
+  // of the pool tag (`[cypress, huy-runner]`), so the jobs with the most tags decide it, even
+  // if sharded jobs that only carry the pool tag outnumber them.
   function sharedJobTags(jobs) {
     const tagLists = (Array.isArray(jobs) ? jobs : [])
       .map((job) => (Array.isArray(job?.tag_list) ? job.tag_list : []))
       .filter((tags) => tags.length > 0);
     if (tagLists.length === 0) return [];
 
-    const unique = [...new Set(tagLists.flat())];
-    const carriedBy = (tag) => tagLists.filter((tags) => tags.includes(tag)).length;
+    const common = (lists) => {
+      const unique = [...new Set(lists.flat())];
+      const carriedBy = (tag) => lists.filter((tags) => tags.includes(tag)).length;
+      return { unique, carriedBy, shared: unique.filter((tag) => carriedBy(tag) === lists.length) };
+    };
 
-    const shared = unique.filter((tag) => carriedBy(tag) === tagLists.length);
-    if (shared.length > 0) return shared;
+    const all = common(tagLists);
+    if (all.shared.length > 0) return all.shared;
 
-    // No tag is on every job: a few jobs are pinned to another runner (e.g. notify jobs on
-    // a fixed one), so the pipeline's runner is what a large share of jobs carry. Judged
-    // against the most common tag rather than by rank, since a tag like `cypress` can sit
-    // on one job more than the runner does.
-    const most = Math.max(...unique.map(carriedBy));
-    return unique.filter((tag) => carriedBy(tag) >= most / 2);
+    const widest = Math.max(...tagLists.map((tags) => tags.length));
+    const specific = common(tagLists.filter((tags) => tags.length === widest));
+
+    // Keep what a large share of the most specific jobs carry; a tag on all of them counts too.
+    const most = Math.max(...specific.unique.map(specific.carriedBy));
+    return specific.unique.filter((tag) => specific.carriedBy(tag) >= most / 2);
   }
 
   function pinnedUrl(entry) {

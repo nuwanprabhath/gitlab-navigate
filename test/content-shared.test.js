@@ -99,13 +99,33 @@ describe('sharedJobTags', () => {
     expect(sharedJobTags(jobs)).toEqual(['perentie-runner']);
   });
 
-  test('shows every tag when the jobs split evenly across runners (pipeline 3015622379)', () => {
+  test('prefers the jobs with the most tags when others are pinned elsewhere (pipeline 3015622379)', () => {
     const jobs = [
       ...tagged(['cypress', 'nuwan-runner'], 3),
       ...tagged(['nectar'], 3),
       ...tagged([], 10),
     ];
-    expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner', 'nectar']);
+    expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner']);
+  });
+
+  test('finds the runner when sharded jobs only carry the pool tag (pipeline 3025821619)', () => {
+    const jobs = [
+      ...tagged(['cypress'], 16),
+      ...tagged(['cypress', 'huy-runner'], 4),
+      ...tagged(['fast-cpu'], 4),
+      ...tagged(['nectar'], 3),
+      ...tagged([], 17),
+    ];
+    expect(sharedJobTags(jobs)).toEqual(['cypress', 'huy-runner']);
+  });
+
+  test('keeps what most equally specific jobs carry when they disagree', () => {
+    const jobs = [
+      ...tagged(['cypress', 'nuwan-runner'], 5),
+      ...tagged(['cypress', 'huy-runner'], 1),
+      ...tagged(['nectar'], 2),
+    ];
+    expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner']);
   });
 
   test('skips jobs without a tag_list', () => {

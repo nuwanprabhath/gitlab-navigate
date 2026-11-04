@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.3
+
+- Fixed the runner badge missing on a pipeline whose sharded test jobs carry only the pool
+  tag (`cypress`) while the runner you chose (`huy-runner`) is added on just the setup,
+  deploy and cleanup jobs. When no tag is on every tagged job, the badge now follows the
+  jobs with the most tags, since a chosen runner is added on top of the pool tag, rather
+  than counting jobs. Jobs pinned to a fixed runner of their own (`nectar`, `fast-cpu`)
+  no longer show up beside it.
+- Tags remembered by 0.22.2 are dropped and fetched again.
+
 ## 0.22.2
 
 - Fixed the runner badge still missing on a pipeline where another tag edged out the
