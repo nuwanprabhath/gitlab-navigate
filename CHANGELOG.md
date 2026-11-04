@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.22.2
+
+- Fixed the runner badge still missing on a pipeline where another tag edged out the
+  runner by a single job — `cypress` on 20 jobs against `nuwan-runner` on 19. When no tag
+  is on every tagged job, the badge now shows every tag carried by at least half as many
+  jobs as the most common one, so small groups (such as `notify` jobs on `nectar`) are
+  left out but the runner is kept.
+- Tags remembered by 0.22.1 are dropped and fetched again.
+
 ## 0.22.1
 
 - Fixed a pipeline showing **no runner badge** when a few of its jobs run on a different

@@ -83,6 +83,17 @@ describe('sharedJobTags', () => {
     expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner']);
   });
 
+  test('keeps the runner when another tag is on one job more (pipeline 3026078955)', () => {
+    const jobs = [
+      ...tagged(['cypress', 'nuwan-runner'], 19),
+      ...tagged(['cypress'], 1),
+      ...tagged(['fast-cpu'], 4),
+      ...tagged(['nectar'], 3),
+      ...tagged([], 20),
+    ];
+    expect(sharedJobTags(jobs)).toEqual(['cypress', 'nuwan-runner']);
+  });
+
   test('prefers the tags every job shares over the majority', () => {
     const jobs = [...tagged(['cypress', 'perentie-runner'], 5), ...tagged(['perentie-runner'], 1)];
     expect(sharedJobTags(jobs)).toEqual(['perentie-runner']);

@@ -33,8 +33,8 @@
     };
   }
 
-  // The tags carried by every job that has any, or failing that by most of them. Untagged
-  // jobs run on shared runners and say nothing about the runner the pipeline targets.
+  // The tags carried by every job that has any, or failing that by a large share of them.
+  // Untagged jobs run on shared runners and say nothing about the runner the pipeline targets.
   function sharedJobTags(jobs) {
     const tagLists = (Array.isArray(jobs) ? jobs : [])
       .map((job) => (Array.isArray(job?.tag_list) ? job.tag_list : []))
@@ -48,9 +48,11 @@
     if (shared.length > 0) return shared;
 
     // No tag is on every job: a few jobs are pinned to another runner (e.g. notify jobs on
-    // a fixed one), so the pipeline's runner is what the most jobs carry. Ties all show.
+    // a fixed one), so the pipeline's runner is what a large share of jobs carry. Judged
+    // against the most common tag rather than by rank, since a tag like `cypress` can sit
+    // on one job more than the runner does.
     const most = Math.max(...unique.map(carriedBy));
-    return unique.filter((tag) => carriedBy(tag) === most);
+    return unique.filter((tag) => carriedBy(tag) >= most / 2);
   }
 
   function pinnedUrl(entry) {

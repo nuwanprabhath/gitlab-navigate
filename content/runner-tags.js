@@ -13,8 +13,8 @@
   const HEADER_JOBS = '[data-testid="pipeline-header"] [data-testid="total-jobs"]';
   // Bumped when sharedJobTags changes what it returns, so results cached by the old rule
   // (such as an empty list for a pipeline with a few jobs on another runner) are refetched.
-  const CACHE_KEY = 'runnerTagsV2';
-  const LEGACY_CACHE_KEY = 'runnerTags';
+  const CACHE_KEY = 'runnerTagsV3';
+  const LEGACY_CACHE_KEYS = ['runnerTags', 'runnerTagsV2'];
   const CACHE_LIMIT = 500;
   const MAX_IN_FLIGHT = 4;
 
@@ -165,7 +165,7 @@
       cache = new Map(
         (Array.isArray(stored) ? stored : []).filter(isValidPair),
       );
-      chrome.storage.local.remove(LEGACY_CACHE_KEY).catch(() => {});
+      chrome.storage.local.remove(LEGACY_CACHE_KEYS).catch(() => {});
       setIgnored(synced.ignoredJobTags);
       setColours(synced.runnerColours);
     } catch {
