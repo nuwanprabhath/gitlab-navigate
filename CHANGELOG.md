@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.23.1
+
+- README: introduces the menu search near the top and shows it finding Pipeline schedules
+  from `sche`, in light and dark. No change to the extension itself.
+
 ## 0.23.0
 
 - **Menu search** on GitLab: a **Search menu…** box under the project (or group) name in

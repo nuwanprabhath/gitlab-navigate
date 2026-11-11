@@ -8,8 +8,12 @@ popup, paste a ticket number, MR number, commit hash, or branch name, press Ente
   <img src="docs/popup-light.png" alt="The GitLab Navigate popup: MRs, Tickets and Pipelines button rows, a two-column Go to grid, pinned pipelines, tickets and MRs, the Create MR boxes, and a Recent list." width="330">
 </picture>
 
-The screenshots are generated from the real markup by `./tools/screenshot.sh` — see
+The popup screenshots are generated from the real markup by `./tools/screenshot.sh` — see
 [Development](#development).
+
+**Also on GitLab itself:** a [**Search menu…** box](#menu-search) under the project name
+finds any page in the left sidebar — Pipeline schedules, Releases, Environments — without
+opening each menu to hunt for it.
 
 ## Install
 
@@ -269,6 +273,16 @@ popup asks for the first time you pin a pipeline, ticket or MR; until then the p
 script isn't switched on.
 
 ## Menu search
+
+GitLab's left sidebar hides most pages inside collapsed menus (Manage, Plan, Code, Build,
+Deploy…), so finding one means opening them one by one. The search box skips that.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/menu-search-dark.png">
+  <img src="docs/menu-search-light.png" alt="GitLab's sidebar with sche typed into the Search menu box, listing Pipeline schedules from the Build section." width="240">
+</picture>
+
+Typing `sche` is all it takes to reach **Pipeline schedules**.
 
 On any page of your GitLab site, a **Search menu…** box sits under the project (or group)
 name in the left sidebar. Type part of a name — `rel`, `schedules`, `analytics` — and the
