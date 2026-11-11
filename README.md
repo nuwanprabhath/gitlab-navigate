@@ -268,6 +268,22 @@ newest 500 are kept). Child pipelines aren't followed. Badges need the GitLab ac
 popup asks for the first time you pin a pipeline, ticket or MR; until then the page
 script isn't switched on.
 
+## Menu search
+
+On any page of your GitLab site, a **Search menu…** box sits under the project (or group)
+name in the left sidebar. Type part of a name — `rel`, `schedules`, `analytics` — and the
+matching links appear right below with the section each one lives in (**Releases**
+*Deploy*), so a page several menus deep is one click away without opening any section.
+Several words must all match in any order, so `deploy rel` finds Releases, and a section's
+name finds everything in it (`build` lists Jobs, Artifacts and so on). **↓** and **↑**
+move through the results, **Enter** opens the first one and **Esc** clears the box.
+Clearing it leaves GitLab's own menu exactly as it was.
+
+GitLab keeps every section's links in the page even while the section is collapsed, so
+the search reads them from there and never has to open anything. Like runner badges it
+needs the GitLab access the popup asks for the first time you pin something, and after
+updating the extension you open the popup once to switch it on again.
+
 ## Swap branches on a "new merge request" page
 
 If GitLab's active tab is already on a `.../-/merge_requests/new?...` page (typically

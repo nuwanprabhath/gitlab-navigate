@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import '../content/shared.js';
 
-const { normalize, pipelineUrlFromHref, sharedJobTags, pinnedUrl } = globalThis.gitlabNavigate;
+const { normalize, pipelineUrlFromHref, sharedJobTags, searchMenuItems, pinnedUrl } =
+  globalThis.gitlabNavigate;
 const BASE = 'https://gitlab.com/ternandsparrow/paratoo-fdcp';
 const tagged = (tags, count) => Array.from({ length: count }, () => ({ tag_list: tags }));
 
@@ -136,6 +137,60 @@ describe('sharedJobTags', () => {
     expect(sharedJobTags(tagged([], 3))).toEqual([]);
     expect(sharedJobTags([])).toEqual([]);
     expect(sharedJobTags(undefined)).toEqual([]);
+  });
+});
+
+describe('searchMenuItems', () => {
+  const item = (label, section, href = `/p/-/${label.toLowerCase().replace(/\W+/g, '-')}`) => ({
+    label,
+    section,
+    href,
+  });
+  const menu = [
+    item('Members', ''),
+    item('Members', 'Manage'),
+    item('Releases', 'Deploy'),
+    item('Pipelines', 'Build'),
+    item('Pipeline schedules', 'Build'),
+    item('CI/CD analytics', 'Analyze'),
+    item('Jobs', 'Build'),
+  ];
+  const labels = (query) => searchMenuItems(menu, query).map((entry) => entry.label);
+
+  test('matches any part of a label, ignoring case', () => {
+    expect(labels('SCHED')).toEqual(['Pipeline schedules']);
+    expect(labels('ci/cd')).toEqual(['CI/CD analytics']);
+  });
+
+  test('puts labels that start with the query before ones that only contain it', () => {
+    expect(labels('pipeline')).toEqual(['Pipelines', 'Pipeline schedules']);
+    expect(labels('sched')).toEqual(['Pipeline schedules']);
+    expect(searchMenuItems([item('Wiki pipelines', 'Plan'), item('Pipelines', 'Build')], 'pipe').map((e) => e.label)).toEqual(['Pipelines', 'Wiki pipelines']);
+  });
+
+  test('needs every word, in any order, across the section and the label', () => {
+    expect(labels('deploy rel')).toEqual(['Releases']);
+    expect(labels('rel deploy')).toEqual(['Releases']);
+    expect(labels('build rel')).toEqual([]);
+  });
+
+  test('finds everything in a section by its name, after label matches', () => {
+    expect(labels('build')).toEqual(['Pipelines', 'Pipeline schedules', 'Jobs']);
+  });
+
+  test('lists a page once, naming the section when it has one', () => {
+    const found = searchMenuItems(
+      [item('Members', '', '/p/-/members'), item('Members', 'Manage', '/p/-/members')],
+      'members',
+    );
+    expect(found).toEqual([item('Members', 'Manage', '/p/-/members')]);
+  });
+
+  test('returns nothing for a blank query or no menu', () => {
+    expect(searchMenuItems(menu, '')).toEqual([]);
+    expect(searchMenuItems(menu, '   ')).toEqual([]);
+    expect(searchMenuItems(menu, undefined)).toEqual([]);
+    expect(searchMenuItems(undefined, 'jobs')).toEqual([]);
   });
 });
 

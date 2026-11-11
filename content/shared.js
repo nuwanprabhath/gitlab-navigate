@@ -63,6 +63,33 @@
     return specific.unique.filter((tag) => specific.carriedBy(tag) >= most / 2);
   }
 
+  // Menu entries ({ label, section, href }) matching `query`, best first. Every
+  // space-separated word must appear in the section name or the label, in any order, so
+  // "deploy rel" finds Releases under Deploy. A match in the label ranks above one only in
+  // the section name, and the same page listed twice (pinned and under its section) is
+  // kept once, preferring the entry that names its section.
+  function searchMenuItems(items, query) {
+    const words = String(query ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
+
+    const byHref = new Map();
+    for (const item of Array.isArray(items) ? items : []) {
+      const known = byHref.get(item.href);
+      if (!known || (!known.section && item.section)) byHref.set(item.href, item);
+    }
+
+    const ranked = [];
+    for (const item of byHref.values()) {
+      const label = item.label.toLowerCase();
+      const haystack = `${item.section ?? ''} ${label}`.toLowerCase();
+      if (!words.every((word) => haystack.includes(word))) continue;
+      const inLabel = words.every((word) => label.includes(word));
+      const startsLabel = label.startsWith(words[0]);
+      ranked.push({ item, rank: startsLabel ? 0 : inLabel ? 1 : 2, order: ranked.length });
+    }
+    return ranked.sort((a, b) => a.rank - b.rank || a.order - b.order).map(({ item }) => item);
+  }
+
   function pinnedUrl(entry) {
     return normalize(entry.webUrl || `${entry.base}/-/pipelines/${entry.id}`);
   }
@@ -89,5 +116,12 @@
     });
   }
 
-  globalThis.gitlabNavigate = { normalize, pipelineUrlFromHref, sharedJobTags, pinnedUrl, watch };
+  globalThis.gitlabNavigate = {
+    normalize,
+    pipelineUrlFromHref,
+    sharedJobTags,
+    searchMenuItems,
+    pinnedUrl,
+    watch,
+  };
 })();

@@ -435,29 +435,39 @@ const PIPELINE_PAGE_SCRIPT = {
     'content/pipeline-notes.js',
     'content/runner-tags.js',
   ],
+  matchPath: '/*/-/pipelines*',
   runAt: 'document_idle',
   persistAcrossSessions: true,
 };
 
+// The menu search box lives on every page of the GitLab site, not just pipeline pages.
+const SIDEBAR_SEARCH_SCRIPT = {
+  id: 'sidebar-search',
+  js: ['content/shared.js', 'content/sidebar-search.js'],
+  matchPath: '/*',
+  runAt: 'document_idle',
+  persistAcrossSessions: true,
+};
+
+const PAGE_SCRIPTS = [PIPELINE_PAGE_SCRIPT, SIDEBAR_SEARCH_SCRIPT];
+
 const sameList = (a, b) => JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
 
-// Keeps the pipeline page scripts registered for the GitLab site in `forBase`. Runs on
-// every popup open because browsers clear registered scripts when the extension
-// updates, the repo URL may have moved to another GitLab site, and an update may have
-// changed the script files.
-async function ensurePipelineNoteScript(forBase) {
-  try {
-    const script = {
-      ...PIPELINE_PAGE_SCRIPT,
-      matches: [`${new URL(forBase).origin}/*/-/pipelines*`],
-    };
-    const [existing] = await chrome.scripting.getRegisteredContentScripts({ ids: [script.id] });
-    if (!existing) await chrome.scripting.registerContentScripts([script]);
-    else if (!sameList(existing.matches, script.matches) || !sameList(existing.js, script.js)) {
-      await chrome.scripting.updateContentScripts([script]);
+// Keeps the page scripts registered for the GitLab site in `forBase`. Runs on every popup
+// open because browsers clear registered scripts when the extension updates, the repo URL
+// may have moved to another GitLab site, and an update may have changed the script files.
+async function ensurePageScripts(forBase) {
+  for (const { matchPath, ...definition } of PAGE_SCRIPTS) {
+    try {
+      const script = { ...definition, matches: [`${new URL(forBase).origin}${matchPath}`] };
+      const [existing] = await chrome.scripting.getRegisteredContentScripts({ ids: [script.id] });
+      if (!existing) await chrome.scripting.registerContentScripts([script]);
+      else if (!sameList(existing.matches, script.matches) || !sameList(existing.js, script.js)) {
+        await chrome.scripting.updateContentScripts([script]);
+      }
+    } catch {
+      // Only this script's page additions are lost; the popup itself is unaffected.
     }
-  } catch {
-    // Only the page notes and badges are lost; the popup itself is unaffected.
   }
 }
 
@@ -526,7 +536,7 @@ async function refreshPinned(kind) {
 // an offline or unauthenticated popup still shows the last known state.
 async function refreshAllPinned() {
   if (!(await hasGitLabAccess())) return;
-  ensurePipelineNoteScript(base);
+  ensurePageScripts(base);
   refreshPinned('pipelines');
   refreshPinned('tickets');
   refreshPinned('mrs');
@@ -573,7 +583,7 @@ async function toggleBell(entry) {
     return;
   }
 
-  ensurePipelineNoteScript(entry.base);
+  ensurePageScripts(entry.base);
   pipelinesList.setEntries(await setPinnedNotify(entry.base, entry.id, true));
 }
 
@@ -589,7 +599,7 @@ async function doPin() {
     granted = false;
   }
 
-  if (granted) ensurePipelineNoteScript(itemBase);
+  if (granted) ensurePageScripts(itemBase);
 
   let entry = { base: itemBase, id };
   if (granted) {

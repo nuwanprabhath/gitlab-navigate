@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.23.0
+
+- **Menu search** on GitLab: a **Search menu…** box under the project (or group) name in
+  the left sidebar lists the menu links that match what you type, with the section each
+  one is in, so you can reach a page such as Releases or Pipeline schedules without
+  opening the menus one by one. Several words match in any order (`deploy rel`), ↓ / ↑
+  move through the results, Enter opens the first and Esc clears the box. GitLab's own
+  menu is left untouched.
+- It runs on every page of your GitLab site, not just pipeline pages. Open the popup once
+  after updating to switch it on.
+
 ## 0.22.3
 
 - Fixed the runner badge missing on a pipeline whose sharded test jobs carry only the pool
